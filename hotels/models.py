@@ -1,14 +1,15 @@
 import uuid
 from django.db import models
+from places.models import Country, State, City
 
 class Hotel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     address = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100)
+    city = models.ForeignKey(City, on_delete=models.PROTECT, null=True, blank=True)
+    state = models.ForeignKey(State, on_delete=models.PROTECT, null=True, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.PROTECT, null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)

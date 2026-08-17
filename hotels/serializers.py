@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from .models import Hotel
+from places.serializers import CitySerializer, StateSerializer, CountrySerializer
 
 class HotelSerializer(serializers.ModelSerializer):
+    city_details = CitySerializer(source='city', read_only=True)
+    state_details = StateSerializer(source='state', read_only=True)
+    country_details = CountrySerializer(source='country', read_only=True)
+
     class Meta:
         model = Hotel
         fields = '__all__'

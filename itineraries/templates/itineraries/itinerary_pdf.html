@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Travel Itinerary - {{ itinerary.event_title }}</title>
+    <style>
+        @page {
+            size: a4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #2D3748;
+            line-height: 1.4;
+            font-size: 9.5pt;
+        }
+        
+        /* Top Header */
+        .header-table {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .company-logo {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #4A5568;
+        }
+        .company-contact {
+            text-align: right;
+            font-size: 9pt;
+            color: #2D3748;
+        }
+        
+        .divider-line {
+            border-top: 1px solid #CBD5E0;
+            margin: 8px 0;
+        }
+        
+        /* Meta Header */
+        .meta-table {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .meta-table td {
+            font-size: 9.5pt;
+            padding: 2px 0;
+        }
+        .meta-label {
+            font-weight: bold;
+            color: #2D3748;
+        }
+        
+        /* Centered Title with Green Circles */
+        .title-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .title-circle {
+            color: #8cd19d;
+            font-size: 20pt;
+            vertical-align: middle;
+        }
+        .title-text {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1A202C;
+            margin: 0 10px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+        
+        /* Day wise details */
+        .day-header-table {
+            width: 100%;
+            background-color: #2c4755;
+            color: #FFFFFF;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .day-header-table td {
+            padding: 6px 10px;
+            font-size: 10pt;
+        }
+        
+        .day-content-table {
+            width: 100%;
+            border-left: 1px solid #CBD5E0;
+            border-right: 1px solid #CBD5E0;
+            border-bottom: 1px solid #CBD5E0;
+        }
+        .day-image-cell {
+            width: 150px;
+            padding: 10px;
+            vertical-align: top;
+        }
+        .day-image-container {
+            border: 1px solid #f9c9d3;
+            padding: 2px;
+            width: 135px;
+            height: 95px;
+            text-align: center;
+        }
+        .day-image {
+            width: 130px;
+            height: 90px;
+        }
+        .day-text-cell {
+            padding: 10px;
+            vertical-align: top;
+        }
+        .place-name {
+            font-size: 10.5pt;
+            font-weight: bold;
+            color: #1A202C;
+            margin-bottom: 4px;
+        }
+        .place-desc {
+            font-size: 9.5pt;
+            color: #4A5568;
+        }
+        
+        .day-notes-row {
+            border-top: 1px solid #CBD5E0;
+            padding: 6px 10px;
+            font-size: 9pt;
+            color: #2D3748;
+            background-color: #F7FAFC;
+        }
+        
+        /* General Note */
+        .subject-to-change {
+            text-align: center;
+            font-weight: bold;
+            font-size: 9pt;
+            color: #1A202C;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
+        }
+        
+        /* Pricing Table */
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #A0AEC0;
+        }
+        .pricing-table th {
+            background-color: #2c4755;
+            color: #FFFFFF;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            font-size: 9pt;
+            border: 1px solid #A0AEC0;
+            text-transform: uppercase;
+        }
+        .pricing-table td {
+            padding: 8px;
+            text-align: center;
+            font-size: 9pt;
+            border: 1px solid #A0AEC0;
+            color: #2D3748;
+        }
+        
+        .pricing-footnote {
+            font-size: 8.5pt;
+            color: #718096;
+            margin-bottom: 2px;
+        }
+        
+        /* Condition Section */
+        .section-title-bold {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #1A202C;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .pink-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .pink-grid-table td {
+            border: 1px solid #E2E8F0;
+            padding: 6px 10px;
+            font-size: 9pt;
+        }
+        .pink-label-cell {
+            background-color: #f9c9d3;
+            color: #1A202C;
+            font-weight: bold;
+            width: 150px;
+            text-transform: uppercase;
+        }
+        .pink-value-cell {
+            color: #2D3748;
+            background-color: #FFFFFF;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <table class="header-table">
+        <tr>
+            <td class="company-logo">[Company Logo]</td>
+            <td class="company-contact">
+                TEL: / FAX:<br>
+                Email:
+            </td>
+        </tr>
+    </table>
+    
+    <div class="divider-line"></div>
+    
+    <!-- Meta Fields -->
+    <table class="meta-table">
+        <tr>
+            <td style="width: 50%;"><span class="meta-label">ATTN:</span> {{ itinerary.contact_name }}</td>
+            <td style="text-align: right; width: 50%;"><span class="meta-label">From:</span> {{ from_user|default:"rahul" }}</td>
+        </tr>
+        <tr>
+            <td><span class="meta-label">TO:</span> {{ itinerary.customer_name }}</td>
+            <td style="text-align: right;"><span class="meta-label">DATE:</span> {{ current_date }}</td>
+        </tr>
+    </table>
+    
+    <div class="divider-line"></div>
+    
+    <!-- Title -->
+    <div class="title-container">
+        <span class="title-circle">&#9679;</span>
+        <span class="title-text">{{ itinerary.event_title }}</span>
+        <span class="title-circle">&#9679;</span>
+    </div>
+    
+    <!-- Day-Wise Details -->
+    {% for day in itinerary.days.all|dictsort:"trip_day" %}
+    <div style="margin-bottom: 15px;">
+        <table class="day-header-table">
+            <tr>
+                <td style="width: 40%; text-align: left;">DAY {{ day.trip_day }} : {{ day.trip_date_formatted }}</td>
+                <td style="width: 30%; text-align: center;">{{ day.city.name }}</td>
+                <td style="width: 30%; text-align: right;">{{ day.meal_plan }}</td>
+            </tr>
+        </table>
+        <table class="day-content-table">
+            <tr>
+                <td class="day-image-cell">
+                    <div class="day-image-container">
+                        {% if day.absolute_photo_path %}
+                            <img class="day-image" src="{{ day.absolute_photo_path }}" />
+                        {% else %}
+                            <div style="font-size: 8pt; color: #A0AEC0; padding-top: 35px;">No Photo</div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="day-text-cell">
+                    <div class="place-name">{{ day.place.place_name }}</div>
+                    <div class="place-desc">
+                        {{ day.description|default:"" }}
+                    </div>
+                </td>
+            </tr>
+            {% if day.notes %}
+            <tr>
+                <td colspan="2" class="day-notes-row">
+                    &bull; {{ day.notes }}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    {% endfor %}
+
+    <!-- General Note -->
+    <div class="subject-to-change">
+        MENU & ITINERARY ARE SUBJECT TO CHANGE. PLEASE NOTE:
+    </div>
+
+    <!-- Pricing Table -->
+    {% if itinerary.group_prices.all %}
+    {% for price in itinerary.group_prices.all %}
+    <table class="pricing-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">CITY</th>
+                <th style="width: 25%;">HOTEL NAME</th>
+                <th style="width: 50%;">
+                    COMPLETE PACKAGE PER PERSON<br>
+                    <span style="font-size: 7.5pt; font-weight: normal; text-transform: none;">(Hotel + Travel + Meals)</span>
+                </th>
+            </tr>
+            <tr>
+                <th colspan="2" style="background-color: #2c4755; border-top: none;"></th>
+                <th style="background-color: #2c4755; border-top: none;">{{ price.group_size }} PAX</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ price.hotel.city.name|upper|default:itinerary.hotel.city.name|upper|default:"-" }}</td>
+                <td>{{ price.hotel.name|upper|default:itinerary.hotel.name|upper|default:"-" }}</td>
+                <td><strong>&#8377;{{ price.total_price_per_person }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    {% endfor %}
+    
+    <div class="pricing-footnote">*All prices are per person and include hotel accommodation, transportation, and meals</div>
+    <div class="pricing-footnote">*For group sizes: {% for price in itinerary.group_prices.all %}{{ price.group_size }} PAX{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+    {% endif %}
+
+    <!-- Conditions -->
+    <div class="section-title-bold">Condition</div>
+    <table class="pink-grid-table">
+        <tr>
+            <td class="pink-label-cell">INCLUSION</td>
+            <td class="pink-value-cell">
+                {% for inc in itinerary.inclusions.all %}
+                    {{ inc.title }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    -
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td class="pink-label-cell">EXCLUSION</td>
+            <td class="pink-value-cell">
+                {% for exc in itinerary.exclusions.all %}
+                    {{ exc.title }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    -
+                {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Cancellation Policy -->
+    <div class="section-title-bold">Cancellation Policy</div>
+    <table class="pink-grid-table">
+        <tr>
+            <td class="pink-label-cell">NOTE</td>
+            <td class="pink-value-cell">
+                {% for policy in itinerary.policies.all %}
+                    {{ policy.title }}: {{ policy.description }}{% if not forloop.last %}<br>{% endif %}
+                {% empty %}
+                    -
+                {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

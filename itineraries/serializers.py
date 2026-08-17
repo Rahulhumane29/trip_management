@@ -2,10 +2,11 @@ from rest_framework import serializers
 from .models import Itinerary, ItineraryDay, ItineraryGroupPrice
 from conditions.serializers import InclusionSerializer, ExclusionSerializer, PolicySerializer
 from hotels.serializers import HotelSerializer
-from places.serializers import PlaceSerializer
+from places.serializers import PlaceSerializer, CitySerializer
 
 class ItineraryDaySerializer(serializers.ModelSerializer):
     place_details = PlaceSerializer(source='place', read_only=True)
+    city_details = CitySerializer(source='city', read_only=True)
 
     class Meta:
         model = ItineraryDay
@@ -14,6 +15,8 @@ class ItineraryDaySerializer(serializers.ModelSerializer):
 
 
 class ItineraryGroupPriceSerializer(serializers.ModelSerializer):
+    hotel_details = HotelSerializer(source='hotel', read_only=True)
+
     class Meta:
         model = ItineraryGroupPrice
         fields = '__all__'

@@ -14,7 +14,7 @@ class ItineraryGroupPriceInline(admin.TabularInline):
 @admin.register(Itinerary)
 class ItineraryAdmin(admin.ModelAdmin):
     list_display = ('event_title', 'customer_name', 'contact_name', 'trip_start_date', 'trip_end_date', 'created_at')
-    list_filter = ('trip_start_date', 'trip_end_date', 'hotel')
+    list_filter = ('trip_start_date', 'trip_end_date')
     search_fields = ('event_title', 'customer_name', 'contact_name')
     inlines = [ItineraryDayInline, ItineraryGroupPriceInline]
     ordering = ('-created_at',)
