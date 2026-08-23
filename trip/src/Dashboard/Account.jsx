@@ -1,37 +1,80 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Toast from "../components/Toast";
 
 export default function Account() {
   // =========================
   // Form State
   // =========================
-  const [companyName, setCompanyName] = useState("Enterprise AI");
-  const [telephone, setTelephone] = useState("+91 9876543210");
-  const [email, setEmail] = useState("alex.chen@enterprise.ai");
-  const [fax, setFax] = useState("+91 2222222222");
-  const [address, setAddress] = useState(
-    "123 Main St, City, State 12345"
-  );
+  const [companyName, setCompanyName] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [email, setEmail] = useState("");
+  const [fax, setFax] = useState("");
+  const [address, setAddress] = useState("");
 
   const [activeSubTab, setActiveSubTab] = useState("Account");
   const [saveStatus, setSaveStatus] = useState("");
+  const [companyId, setCompanyId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToastMessage = (msg, type = 'success') => {
+    setToast({ show: true, message: msg, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
 
   // =========================
-  // Tabs
+  // Load data dynamically
   // =========================
-  const subTabs = [
-    {
-      name: "Account",
-      icon: "👤",
-    },
-    {
-      name: "Security",
-      icon: "🔒",
-    },
-    {
-      name: "Billing",
-      icon: "💳",
-    },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      showToastMessage("Please login to manage account details.", "error");
+      return;
+    }
+
+    // 1. Fetch authenticated user profile to read associated account id
+    fetch('/api/profile/', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to load user profile.");
+      return res.json();
+    })
+    .then(userData => {
+      if (userData.account_id) {
+        setCompanyId(userData.account_id);
+        // 2. Fetch associated account details
+        return fetch(`/api/accounts/${userData.account_id}/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+      throw new Error("No company account associated with your user profile.");
+    })
+    .then(res => {
+      if (res && !res.ok) throw new Error("Failed to load account details.");
+      return res ? res.json() : null;
+    })
+    .then(accountData => {
+      if (accountData) {
+        setCompanyName(accountData.name || "");
+        setTelephone(accountData.telephone || "");
+        setEmail(accountData.email || "");
+        setFax(accountData.fax || "");
+        setAddress(accountData.address || "");
+        showToastMessage("Account details loaded successfully.", "success");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToastMessage(err.message || "Failed to load company details.", "error");
+    });
+  }, []);
 
   // =========================
   // Save
@@ -40,33 +83,79 @@ export default function Account() {
     if (e) {
       e.preventDefault();
     }
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      showToastMessage("Please login to save changes.", "error");
+      return;
+    }
 
     setSaveStatus("Saving...");
 
-    setTimeout(() => {
-      setSaveStatus("Changes saved successfully!");
+    const url = companyId ? `/api/accounts/${companyId}/` : '/api/accounts/';
+    const method = companyId ? 'PUT' : 'POST';
 
-      setTimeout(() => {
-        setSaveStatus("");
-      }, 2500);
-    }, 800);
+    fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: companyName || "My Company",
+        telephone: telephone,
+        email: email,
+        fax: fax,
+        address: address
+      })
+    })
+    .then(async res => {
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(Object.values(data).flat().join(' ') || 'Failed to save changes.');
+      }
+      return data;
+    })
+    .then(data => {
+      setSaveStatus("");
+      if (!companyId && data.id) {
+        setCompanyId(data.id);
+      }
+      setIsEditing(false);
+      showToastMessage("Changes saved successfully!", "success");
+    })
+    .catch(err => {
+      setSaveStatus("");
+      showToastMessage(err.message || "Error saving changes.", "error");
+    });
   };
 
   // =========================
   // Reset
   // =========================
   const handleReset = () => {
-    setCompanyName("Enterprise AI");
-    setTelephone("+91 9876543210");
-    setEmail("alex.chen@enterprise.ai");
-    setFax("+91 2222222222");
-    setAddress("123 Main St, City, State 12345");
+    const token = localStorage.getItem('access_token');
+    if (!token || !companyId) return;
 
-    setSaveStatus("Reset to default values.");
-
-    setTimeout(() => {
+    setSaveStatus("Resetting...");
+    fetch(`/api/accounts/${companyId}/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(accountData => {
+      setCompanyName(accountData.name || "");
+      setTelephone(accountData.telephone || "");
+      setEmail(accountData.email || "");
+      setFax(accountData.fax || "");
+      setAddress(accountData.address || "");
       setSaveStatus("");
-    }, 2000);
+      showToastMessage("Reset successfully.", "success");
+    })
+    .catch(err => {
+      setSaveStatus("");
+      showToastMessage("Reset failed.", "error");
+    });
   };
 
   return (
@@ -88,34 +177,7 @@ export default function Account() {
 
       {/* =========================================
           Tabs + Actions
-      ========================================== */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-
-        {/* Navigation Tabs */}
-        <div className="flex items-center p-1 bg-slate-100/80 border border-slate-200/40 rounded-xl">
-          {subTabs.map((tab) => {
-            const isActive = activeSubTab === tab.name;
-
-            return (
-              <button
-                key={tab.name}
-                type="button"
-                onClick={() => setActiveSubTab(tab.name)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-white text-slate-800 shadow-sm border border-slate-200/50"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-       
-      </div>
+     
 
       {/* =========================================
           Save Status
@@ -156,28 +218,29 @@ export default function Account() {
 
   <button
     type="button"
-    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all cursor-pointer shadow-sm"
+    onClick={() => setIsEditing(!isEditing)}
+    className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm ${
+      isEditing 
+        ? "bg-slate-50 border-slate-300 text-slate-500 hover:bg-slate-100" 
+        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+    }`}
   >
-    <svg
-      className="w-3.5 h-3.5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-      />
-    </svg>
-
-    Edit
+    {isEditing ? (
+      <>
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        Cancel
+      </>
+    ) : (
+      <>
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        Edit
+      </>
+    )}
   </button>
 </div>
           {/* =====================================
@@ -240,8 +303,11 @@ export default function Account() {
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
+                  disabled={!isEditing}
                   placeholder="Enter company name"
-                  className="block w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium"
+                  className={`block w-full px-3 py-2.5 text-sm border rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium ${
+                    isEditing ? "bg-white border-slate-200" : "bg-slate-50/70 border-slate-100/80 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
@@ -255,8 +321,11 @@ export default function Account() {
                   type="tel"
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value)}
+                  disabled={!isEditing}
                   placeholder="Enter telephone number"
-                  className="block w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium"
+                  className={`block w-full px-3 py-2.5 text-sm border rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium ${
+                    isEditing ? "bg-white border-slate-200" : "bg-slate-50/70 border-slate-100/80 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
@@ -284,7 +353,7 @@ export default function Account() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v10a2 2 0 002 2z"
                       />
                     </svg>
                   </div>
@@ -293,8 +362,11 @@ export default function Account() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={!isEditing}
                     placeholder="Enter work email"
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium"
+                    className={`block w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium ${
+                      isEditing ? "bg-white border-slate-200" : "bg-slate-50/70 border-slate-100/80 cursor-not-allowed"
+                    }`}
                   />
 
                 </div>
@@ -310,8 +382,11 @@ export default function Account() {
                   type="text"
                   value={fax}
                   onChange={(e) => setFax(e.target.value)}
+                  disabled={!isEditing}
                   placeholder="Enter fax number"
-                  className="block w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium"
+                  className={`block w-full px-3 py-2.5 text-sm border rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium ${
+                    isEditing ? "bg-white border-slate-200" : "bg-slate-50/70 border-slate-100/80 cursor-not-allowed"
+                  }`}
                 />
               </div>
 
@@ -327,20 +402,32 @@ export default function Account() {
                 value={address}
                 rows={3}
                 onChange={(e) => setAddress(e.target.value)}
+                disabled={!isEditing}
                 placeholder="Enter company address"
-                className="block w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium resize-none leading-relaxed"
+                className={`block w-full px-3.5 py-2.5 text-sm border rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-medium resize-none leading-relaxed ${
+                  isEditing ? "bg-white border-slate-200" : "bg-slate-50/70 border-slate-100/80 cursor-not-allowed"
+                }`}
               />
             </div>
 
             {/* Form Save Button */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#5b6bf9] hover:bg-[#4a58e3] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer"
-              >
-                Save Details
-              </button>
-            </div>
+            {isEditing && (
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 active:scale-[0.98] rounded-xl text-xs font-semibold text-slate-600 transition-all cursor-pointer"
+                >
+                  Reset Defaults
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#5b6bf9] hover:bg-[#4a58e3] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-indigo-200/10"
+                >
+                  Save Details
+                </button>
+              </div>
+            )}
 
           </form>
         </div>
@@ -499,6 +586,10 @@ export default function Account() {
 
         </div>
       </div>    
+
+      {/* Toast Notification */}
+      <Toast show={toast.show} message={toast.message} type={toast.type} />
+
     </div>
   );
 }

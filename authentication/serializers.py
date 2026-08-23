@@ -6,13 +6,13 @@ from rest_framework import serializers
 
 class UserSerializer(serializers.ModelSerializer):
     is_verified = serializers.BooleanField(source='profile.is_verified', read_only=True)
-    account_id = serializers.IntegerField(source='profile.account.id', read_only=True, allow_null=True)
+    account_id = serializers.UUIDField(source='profile.account.id', read_only=True, allow_null=True)
     role = serializers.CharField(source='profile.role', read_only=True)
     contact = serializers.CharField(source='profile.contact', read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'is_verified', 'account_id', 'role', 'contact')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_verified', 'account_id', 'role', 'contact')
 
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(min_length=3, max_length=150, required=True)

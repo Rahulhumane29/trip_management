@@ -17,16 +17,48 @@ export default function Login({ onLoginSuccess }) {
     setError('');
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    // Call real Django auth API
+    fetch('/api/login/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: email,
+        password: password
+      })
+    })
+    .then(async (res) => {
+      const text = await res.text();
+      let data = {};
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error(`Server error (${res.status}). Please make sure your Django backend server is running.`);
+      }
+      if (!res.ok) {
+        throw new Error(data.detail || 'Invalid email or password.');
+      }
+      return data;
+    })
+    .then((data) => {
       setLoading(false);
       setSuccess(true);
+      // Save tokens and user data
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('user_info', JSON.stringify(data.user));
+      
       if (onLoginSuccess) {
         setTimeout(() => {
           onLoginSuccess();
         }, 800);
       }
-    }, 1500);
+    })
+    .catch((err) => {
+      setLoading(false);
+      setError(err.message || 'Server error. Please try again.');
+    });
   };
 
   return (
@@ -68,24 +100,24 @@ export default function Login({ onLoginSuccess }) {
               </div>
             )}
 
-            {/* Email Field */}
+            {/* Email or Username Field */}
             <div>
               <label htmlFor="email" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Email
+                Email or Username
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  {/* Email envelope icon */}
+                  {/* User/Email icon */}
                   <svg className="h-[18px] w-[18px] text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
                 <input
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@enterprise.ai"
+                  placeholder="Enter email or username"
                   className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-100 transition-all font-normal"
                   required
                 />

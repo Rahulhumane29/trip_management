@@ -8,13 +8,13 @@ from .views import (
 urlpatterns = [
     # Inclusions
     path('inclusions/', inclusion_list_create_view, name='inclusion_list_create'),
-    path('inclusions/<int:pk>/', inclusion_detail_view, name='inclusion_detail'),
+    path('inclusions/<str:pk>/', inclusion_detail_view, name='inclusion_detail'),
 
     # Exclusions
     path('exclusions/', exclusion_list_create_view, name='exclusion_list_create'),
-    path('exclusions/<int:pk>/', exclusion_detail_view, name='exclusion_detail'),
+    path('exclusions/<str:pk>/', exclusion_detail_view, name='exclusion_detail'),
 
     # Policies
     path('policies/', policy_list_create_view, name='policy_list_create'),
-    path('policies/<int:pk>/', policy_detail_view, name='policy_detail'),
+    path('policies/<str:pk>/', policy_detail_view, name='policy_detail'),
 ]

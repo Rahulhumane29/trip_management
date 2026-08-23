@@ -3,6 +3,6 @@ from .views import account_list_create_view, account_detail_view, associate_acco
 
 urlpatterns = [
     path('', account_list_create_view, name='account_list_create'),
-    path('<int:pk>/', account_detail_view, name='account_detail'),
+    path('<str:pk>/', account_detail_view, name='account_detail'),
     path('associate/', associate_account_view, name='account_associate'),
 ]

@@ -48,6 +48,7 @@ class Place(models.Model):
     place_name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     photo = models.FileField(upload_to='places/photos/', blank=True, null=True)
+    status = models.CharField(max_length=20, default='Active', choices=[('Active', 'Active'), ('Inactive', 'Inactive')])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

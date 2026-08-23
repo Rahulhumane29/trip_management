@@ -114,11 +114,20 @@ def verify_email_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    username = request.data.get('username')
+    username_or_email = request.data.get('username')
     password = request.data.get('password')
 
-    if not username or not password:
-        return Response({"detail": "Please provide both username and password."}, status=status.HTTP_400_BAD_REQUEST)
+    if not username_or_email or not password:
+        return Response({"detail": "Please provide both username/email and password."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Resolve username from email if the user entered their email address
+    username = username_or_email
+    if '@' in username_or_email:
+        try:
+            resolved_user = User.objects.get(email__iexact=username_or_email)
+            username = resolved_user.username
+        except User.DoesNotExist:
+            pass
 
     user = authenticate(username=username, password=password)
     if user is None:
@@ -138,11 +147,34 @@ def login_view(request):
     }, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_profile_view(request):
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    if request.method == 'GET':
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    elif request.method == 'PUT':
+        user = request.user
+        data = request.data
+        
+        # Update User fields
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'email' in data:
+            user.email = data['email']
+        user.save()
+        
+        # Update UserProfile fields
+        profile = getattr(user, 'profile', None)
+        if profile:
+            if 'contact' in data:
+                profile.contact = data['contact']
+            profile.save()
+            
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

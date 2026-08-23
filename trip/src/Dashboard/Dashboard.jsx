@@ -5,6 +5,9 @@ import StatsCard from '../components/StatsCard';
 import PerformanceChart from '../components/PerformanceChart';
 import Account from './Account';
 import Conditions from './Conditions';
+import Hotel from './Hotel';
+import Places from './Places';
+import TripManage from './trip_manage';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -75,7 +78,13 @@ export default function Dashboard() {
           {activeTab === 'Settings' ? (
             <Account />
           ) : activeTab === 'Destinations' ? (
+            <Places />
+          ) : activeTab === 'Conditions' ? (
             <Conditions />
+          ) : activeTab === 'Trips' ? (
+            <Hotel />
+          ) : activeTab === 'TripManage' ? (
+            <TripManage />
           ) : (
             <>
               {/* Main Content Title Bar */}

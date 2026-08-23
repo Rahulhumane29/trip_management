@@ -3,5 +3,5 @@ from .views import hotel_list_create_view, hotel_detail_view
 
 urlpatterns = [
     path('', hotel_list_create_view, name='hotel_list_create'),
-    path('<int:pk>/', hotel_detail_view, name='hotel_detail'),
+    path('<str:pk>/', hotel_detail_view, name='hotel_detail'),
 ]
