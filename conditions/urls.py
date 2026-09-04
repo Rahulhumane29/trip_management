@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     inclusion_list_create_view, inclusion_detail_view,
     exclusion_list_create_view, exclusion_detail_view,
-    policy_list_create_view, policy_detail_view
+    policy_list_create_view, policy_detail_view,
+    important_note_list_create_view, important_note_detail_view
 )
 
 urlpatterns = [
@@ -17,4 +18,8 @@ urlpatterns = [
     # Policies
     path('policies/', policy_list_create_view, name='policy_list_create'),
     path('policies/<str:pk>/', policy_detail_view, name='policy_detail'),
+
+    # Important Notes
+    path('important_notes/', important_note_list_create_view, name='important_note_list_create'),
+    path('important_notes/<str:pk>/', important_note_detail_view, name='important_note_detail'),
 ]

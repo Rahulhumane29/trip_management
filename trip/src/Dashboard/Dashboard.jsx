@@ -8,9 +8,11 @@ import Conditions from './Conditions';
 import Hotel from './Hotel';
 import Places from './Places';
 import TripManage from './trip_manage';
+import TripInventory from './TripInventory';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [editTripId, setEditTripId] = useState(null);
 
   // KPI Data
   const stats = [
@@ -84,7 +86,9 @@ export default function Dashboard() {
           ) : activeTab === 'Trips' ? (
             <Hotel />
           ) : activeTab === 'TripManage' ? (
-            <TripManage />
+            <TripManage tripId={editTripId} setActiveTab={setActiveTab} setEditTripId={setEditTripId} />
+          ) : activeTab === 'Trip Inventory' ? (
+            <TripInventory setActiveTab={setActiveTab} setEditTripId={setEditTripId} />
           ) : (
             <>
               {/* Main Content Title Bar */}

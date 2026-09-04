@@ -333,15 +333,73 @@ class ItineraryStep2ValidationTests(APITestCase):
         response = self.client.post('/api/itinerary/submit/', submit_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, msg=response.content)
 
-        # Query database and verify fields are saved
+        # Verify database and verify fields are saved
         saved_itinerary = Itinerary.objects.get(customer_name='John Doe')
         group_price = saved_itinerary.group_prices.first()
         self.assertEqual(group_price.travel_type, 'flight')
         self.assertEqual(group_price.other_charge_type, 'place_charges')
         self.assertEqual(group_price.hotel, test_hotel)
-        self.assertEqual(group_price.meals_included, 'Breakfast, Lunch')
+        # meals_included is now automatically populated from unique meals across all days (Day 1: Breakfast, Lunch, Dinner; Day 2: Lunch; Day 3: Snacks)
+        self.assertEqual(group_price.meals_included, 'Breakfast, Lunch, Dinner, Snacks')
         self.assertEqual(group_price.total_price_per_person, 250.00)
         
         # Verify Day 1 saved successfully with multiple meals
         day1 = saved_itinerary.days.get(trip_day=1)
         self.assertEqual(day1.meal_plan, 'Breakfast, Lunch, Dinner')
+
+    def test_submit_meals_included_deduplication(self):
+        # Cache step 1 and step 2 info where a meal is selected multiple times across days
+        cache.set(f"itinerary_draft:{self.draft_token}", self.draft_data, timeout=8600)
+        cache.set(f"itinerary_draft_days:{self.draft_token}", [
+            {
+                'city': 'Paris',
+                'place': str(self.place.id),
+                'meal_plan': 'Breakfast, Lunch',
+                'description': '',
+                'trip_day': 1,
+                'trip_date': '2026-09-01',
+                'notes': ''
+            },
+            {
+                'city': 'Paris',
+                'place': str(self.place.id),
+                'meal_plan': 'Lunch, Dinner',
+                'description': '',
+                'trip_day': 2,
+                'trip_date': '2026-09-02',
+                'notes': ''
+            },
+            {
+                'city': 'Paris',
+                'place': str(self.place.id),
+                'meal_plan': 'Breakfast, Snacks',
+                'description': '',
+                'trip_day': 3,
+                'trip_date': '2026-09-03',
+                'notes': ''
+            }
+        ], timeout=8600)
+
+        submit_data = {
+            'draft_token': self.draft_token,
+            'groups': [
+                {
+                    'group_size': 10,
+                    'hotel': None,
+                    'hotel_price': 100.00,
+                    'meal_price': 50.00,
+                    'meals_included': '', # empty, should be set by backend
+                    'travel_price': 80.00,
+                    'travel_type': 'bus',
+                    'other_charges': 20.00,
+                    'other_charge_type': 'place_charges'
+                }
+            ]
+        }
+        response = self.client.post('/api/itinerary/submit/', submit_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        saved_itinerary = Itinerary.objects.get(customer_name='John Doe')
+        group_price = saved_itinerary.group_prices.first()
+        # Should contain 'Breakfast, Lunch, Dinner, Snacks' without duplication
+        self.assertEqual(group_price.meals_included, 'Breakfast, Lunch, Dinner, Snacks')

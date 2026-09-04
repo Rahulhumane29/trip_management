@@ -11,7 +11,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
       )
     },
     {
-      name: 'Trips',
+      name: 'Hotels',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -27,6 +27,16 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
         </svg>
       )
     },
+
+    {
+      name: 'Trip Inventory',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      )
+    },
+
     {
       name: 'Destinations',
       icon: (
@@ -66,23 +76,23 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-100 flex flex-col justify-between h-screen fixed top-0 left-0 z-20 font-sans select-none">
+    <aside className="w-64 bg-sidebar-bg border-r border-sidebar-border flex flex-col justify-between h-screen fixed top-0 left-0 z-20 font-sans select-none text-sidebar-text">
       <div className="p-6">
         {/* Brand Logo Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+          <div className="w-9 h-9 bg-sidebar-active rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
             {/* Map folded logo */}
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
           </div>
-          <span className="text-lg font-bold text-slate-800 tracking-tight">TripPlanner Pro</span>
+          <span className="text-lg font-bold text-sidebar-text tracking-tight">TripPlanner Pro</span>
         </div>
 
         {/* Create New Trip Button */}
         <button
           onClick={() => setActiveTab && setActiveTab('NewTrip')}
-          className="w-full bg-[#ff6a00] hover:bg-[#e65c00] active:scale-[0.98] text-white text-[13px] font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all cursor-pointer mb-8"
+          className="w-full bg-sidebar-active hover:opacity-90 active:scale-[0.98] text-white text-[13px] font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 transition-all cursor-pointer mb-8"
         >
           <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -100,11 +110,11 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
                 onClick={() => setActiveTab && setActiveTab(item.name)}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-slate-50 text-slate-800'
-                    : 'text-slate-500 hover:bg-slate-50/50 hover:text-slate-800'
+                    ? 'bg-sidebar-active text-sidebar-text'
+                    : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
                 }`}
               >
-                <span className={`${isActive ? 'text-[#ff6a00]' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
                   {item.icon}
                 </span>
                 <span>{item.name}</span>
@@ -115,7 +125,7 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
       </div>
 
       {/* Footer Nav & Profile dropdown block */}
-      <div className="p-6 border-t border-slate-100/80">
+      <div className="p-6 border-t border-sidebar-border">
         <nav className="space-y-1 mb-6">
           {bottomItems.map((item) => {
             const isActive = activeTab === item.name;
@@ -125,11 +135,11 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
                 onClick={() => setActiveTab && setActiveTab(item.name)}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-slate-50 text-slate-800'
-                    : 'text-slate-500 hover:bg-slate-50/50 hover:text-slate-800'
+                    ? 'bg-sidebar-active text-sidebar-text'
+                    : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
                 }`}
               >
-                <span className={`${isActive ? 'text-[#ff6a00]' : 'text-slate-400'}`}>
+                <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
                   {item.icon}
                 </span>
                 <span>{item.name}</span>
@@ -139,12 +149,12 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
         </nav>
 
         {/* User profile dropdown block */}
-        <div className="flex items-center justify-between p-3.5 bg-slate-50/50 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-slate-200 transition-all cursor-pointer group">
+        <div className="flex items-center justify-between p-3.5 bg-sidebar-hover border border-sidebar-border rounded-xl hover:opacity-95 transition-all cursor-pointer group">
           <div className="flex flex-col text-left">
-            <span className="text-[13px] font-bold text-slate-800 tracking-tight leading-tight">Alex Rivera</span>
-            <span className="text-[10px] text-slate-400 font-medium mt-0.5">Travel Coordinator</span>
+            <span className="text-[13px] font-bold text-sidebar-text tracking-tight leading-tight">Alex Rivera</span>
+            <span className="text-[10px] text-sidebar-secondary font-medium mt-0.5">Travel Coordinator</span>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-4 h-4 text-sidebar-secondary group-hover:text-sidebar-text transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </div>

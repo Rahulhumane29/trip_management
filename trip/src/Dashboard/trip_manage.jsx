@@ -87,15 +87,18 @@ function MultiSearchableSelect({ label, placeholder, options, selectedValues, on
   );
 }
 
-export default function TripManage() {
+export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
   const [step, setStep] = useState(1);
 
   // Lists loaded from backend
   const [availableHotels, setAvailableHotels] = useState([]);
   const [availablePlaces, setAvailablePlaces] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [availableCountries, setAvailableCountries] = useState([]);
   const [inclusionsList, setInclusionsList] = useState([]);
   const [exclusionsList, setExclusionsList] = useState([]);
   const [policiesList, setPoliciesList] = useState([]);
+  const [importantNotesList, setImportantNotesList] = useState([]);
 
   // Step 1: Form state
   const [customerName, setCustomerName] = useState('');
@@ -109,6 +112,7 @@ export default function TripManage() {
   const [selectedInclusions, setSelectedInclusions] = useState([]);
   const [selectedExclusions, setSelectedExclusions] = useState([]);
   const [selectedPolicies, setSelectedPolicies] = useState([]);
+  const [selectedImportantNotes, setSelectedImportantNotes] = useState([]);
 
   // Day Modal State
   const [showDayModal, setShowDayModal] = useState(false);
@@ -117,10 +121,128 @@ export default function TripManage() {
   // Step 2: Itinerary items state - Initialized completely empty
   const [itineraryDays, setItineraryDays] = useState([]);
 
-  // Step 3: Pricing group occupancy state - Initialized completely empty
-  const [groupPricing, setGroupPricing] = useState([]);
+  const getDaysDuration = () => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end >= start) {
+        const diffTime = Math.abs(end - start);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      }
+    }
+    return itineraryDays.length || 0;
+  };
+
+
+
+  // Step 3: Pricing group occupancy state
+  const [groups, setGroups] = useState([]);
+  const [newGroupSize, setNewGroupSize] = useState('');
+  const [pricingOptions, setPricingOptions] = useState([]);
 
   // Fetch backend lists for dynamic inputs
+  const [loadingTrip, setLoadingTrip] = useState(false);
+
+  // If we receive a tripId, this component is opened in Edit mode
+  useEffect(() => {
+    if (tripId) {
+      setLoadingTrip(true);
+      fetch(`/api/itinerary/${tripId}/`)
+        .then(res => res.json())
+        .then(data => {
+          // Pre-populate fields based on the fetched complete itinerary data
+          setCustomerName(data.customer_name || '');
+          setContactName(data.contact_name || '');
+          setTripTitle(data.event_title || '');
+          setStartDate(data.trip_start_date || '');
+          setEndDate(data.trip_end_date || '');
+          
+          if (data.inclusions_details) {
+            setSelectedInclusions(data.inclusions_details.map(item => item.id));
+          }
+          if (data.exclusions_details) {
+            setSelectedExclusions(data.exclusions_details.map(item => item.id));
+          }
+          if (data.policies_details) {
+            setSelectedPolicies(data.policies_details.map(item => item.id));
+          }
+          if (data.important_notes_details) {
+            setSelectedImportantNotes(data.important_notes_details.map(item => item.id));
+          }
+          if (data.days) {
+            const mappedDays = data.days.map(d => {
+              const mealsObj = {
+                breakfast: (d.meal_plan || '').includes('Breakfast'),
+                lunch: (d.meal_plan || '').includes('Lunch'),
+                snacks: (d.meal_plan || '').includes('Snacks'),
+                dinner: (d.meal_plan || '').includes('Dinner')
+              };
+              
+              let resolvedActivities = [];
+              if (d.items) {
+                d.items.forEach(item => {
+                  if (item.places_details && item.places_details.length > 0) {
+                    item.places_details.forEach(p => resolvedActivities.push(p.place_name || p.name));
+                  }
+                });
+              }
+
+              return {
+                day: String(d.trip_day).padStart(2, '0'),
+                date: d.trip_date ? new Date(d.trip_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+                city: d.city_details ? d.city_details.name : 'Unknown',
+                place: d.place || '',
+                activities: resolvedActivities,
+                meals: mealsObj,
+                description: d.description || '',
+                notes: d.notes || '',
+                meal_plan: d.meal_plan || '',
+                trip_day: d.trip_day,
+                items: d.items || []
+              };
+            });
+            setItineraryDays(mappedDays);
+          }
+
+          if (data.group_prices && data.group_prices.length > 0) {
+            const uniqueGroups = [...new Set(data.group_prices.map(gp => gp.group_size))];
+            setGroups(uniqueGroups);
+
+            const optionsMap = {};
+            data.group_prices.forEach(gp => {
+              const hotelName = gp.hotel_details ? gp.hotel_details.name : 'Unknown Hotel';
+              const mealPlan = gp.meals_included || 'Breakfast';
+              const travelType = gp.travel_type || 'Private Coach';
+              
+              const key = `${hotelName}-${mealPlan}-${travelType}`;
+              if (!optionsMap[key]) {
+                optionsMap[key] = {
+                  id: Date.now().toString() + Math.random(),
+                  hotelName: hotelName,
+                  mealPlan: mealPlan,
+                  travelType: travelType,
+                  groupPrices: {}
+                };
+              }
+              optionsMap[key].groupPrices[gp.group_size] = {
+                hotelPrice: Number(gp.hotel_price),
+                mealPrice: Number(gp.meal_price),
+                travelPrice: Number(gp.travel_price),
+                otherPrice: Number(gp.other_charges)
+              };
+            });
+            setPricingOptions(Object.values(optionsMap));
+          }
+
+          setLoadingTrip(false);
+        })
+        .catch(err => {
+          console.error("Error loading trip for edit:", err);
+          setLoadingTrip(false);
+        });
+    }
+  }, [tripId]);
+
   useEffect(() => {
     fetch('/api/hotels/')
       .then(res => res.json())
@@ -133,6 +255,20 @@ export default function TripManage() {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setAvailablePlaces(data);
+      })
+      .catch(err => console.error(err));
+
+    fetch('/api/places/cities/')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAvailableCities(data);
+      })
+      .catch(err => console.error(err));
+
+    fetch('/api/places/countries/')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAvailableCountries(data);
       })
       .catch(err => console.error(err));
 
@@ -156,17 +292,99 @@ export default function TripManage() {
         if (Array.isArray(data)) setPoliciesList(data.map(item => ({ id: item.id, text: item.text.split(' | ')[0] })));
       })
       .catch(err => console.error(err));
+
+    fetch('/api/conditions/important_notes/')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setImportantNotesList(data.map(item => ({ id: item.id, text: item.text.split(' | ')[0] })));
+      })
+      .catch(err => console.error(err));
   }, []);
 
   // Navigation callbacks
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, 3));
+  const handleNext = () => {
+    if (step === 1) {
+      if (!customerName || !customerName.trim()) {
+        alert("Please enter Customer Name.");
+        return;
+      }
+      if (customerName.trim().length < 3) {
+        alert("Customer Name must be at least 3 characters long.");
+        return;
+      }
+      if (!/^[a-zA-Z\s]+$/.test(customerName.trim())) {
+        alert("Customer Name must contain only letters and spaces.");
+        return;
+      }
+
+      if (!contactName || !contactName.trim()) {
+        alert("Please enter Contact Name.");
+        return;
+      }
+      if (contactName.trim().length < 3) {
+        alert("Contact Name must be at least 3 characters long.");
+        return;
+      }
+      if (!/^[a-zA-Z\s]+$/.test(contactName.trim())) {
+        alert("Contact Name must contain only letters and spaces.");
+        return;
+      }
+
+      if (!tripTitle || !tripTitle.trim()) {
+        alert("Please enter Trip Title.");
+        return;
+      }
+      if (tripTitle.trim().length < 5) {
+        alert("Trip Title must be at least 5 characters long.");
+        return;
+      }
+
+      if (!startDate) {
+        alert("Please select a Trip Start Date.");
+        return;
+      }
+      if (!endDate) {
+        alert("Please select a Trip End Date.");
+        return;
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Trip Start Date must be before or equal to Trip End Date.");
+        return;
+      }
+    } else if (step === 2) {
+      if (itineraryDays.length === 0) {
+        alert("Please add at least one Itinerary Day.");
+        return;
+      }
+    }
+    setStep((prev) => Math.min(prev + 1, 3));
+  };
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
 
   // Save Day Callback
   const handleSaveDay = (dayData) => {
-    const matchedPlace = availablePlaces.find(p => p.id === dayData.place);
-    const resolvedCity = matchedPlace ? (matchedPlace.city?.name || 'Unknown') : 'Unknown';
-    const resolvedActivities = matchedPlace ? [matchedPlace.name] : [];
+    // Resolve cities from items
+    const cityIds = dayData.items ? dayData.items.map(item => item.city).filter(Boolean) : [];
+    const resolvedCities = Array.from(new Set(cityIds.map(cid => {
+      const cityObj = availableCities.find(c => c.id === cid || c.name === cid);
+      return cityObj ? cityObj.name : cid;
+    })));
+    const resolvedCity = resolvedCities.length > 0 ? resolvedCities.join(', ') : 'Unknown';
+
+    // Resolve places/activities from items
+    let resolvedActivities = [];
+    if (dayData.items) {
+      dayData.items.forEach(item => {
+        if (item.places && item.places.length > 0) {
+          item.places.forEach(pid => {
+            const placeObj = availablePlaces.find(p => p.id === pid);
+            if (placeObj) {
+              resolvedActivities.push(placeObj.place_name || placeObj.name);
+            }
+          });
+        }
+      });
+    }
 
     const mealsObj = {
       breakfast: dayData.meal_plan.includes('Breakfast'),
@@ -183,13 +401,14 @@ export default function TripManage() {
         year: 'numeric'
       }) : '',
       city: resolvedCity,
-      place: dayData.place,
+      place: dayData.items?.[0]?.places?.[0] || '', // Fallback first place
       activities: resolvedActivities,
       meals: mealsObj,
       description: dayData.description,
       notes: dayData.notes,
       meal_plan: dayData.meal_plan,
-      trip_day: dayData.trip_day
+      trip_day: dayData.trip_day,
+      items: dayData.items || []
     };
 
     if (editingDayIndex !== null) {
@@ -211,37 +430,125 @@ export default function TripManage() {
     setItineraryDays(itineraryDays.filter((_, i) => i !== idx));
   };
 
-  // Group Pricing Row Handlers
-  const addGroupPricingRow = () => {
-    setGroupPricing([
-      ...groupPricing,
-      { group: `Group ${groupPricing.length + 1}`, hotel: '', meal: 'Breakfast', travel: 'Private Coach', other: '₹0', perPerson: '₹0' }
+  // Group size additions/removals
+  const addGroupSize = () => {
+    const size = parseInt(newGroupSize);
+    if (!size || groups.includes(size)) return;
+    const updatedGroups = [...groups, size].sort((a, b) => a - b);
+    setGroups(updatedGroups);
+    setNewGroupSize('');
+
+    // Pre-populate pricing options with 0s for this new group size
+    setPricingOptions(pricingOptions.map(opt => {
+      const currentGroupPrices = { ...opt.groupPrices };
+      if (!currentGroupPrices[size]) {
+        currentGroupPrices[size] = { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+      }
+      return { ...opt, groupPrices: currentGroupPrices };
+    }));
+  };
+
+  const removeGroupSize = (size) => {
+    setGroups(groups.filter(g => g !== size));
+    setPricingOptions(pricingOptions.map(opt => {
+      const updated = { ...opt.groupPrices };
+      delete updated[size];
+      return { ...opt, groupPrices: updated };
+    }));
+  };
+
+  // Pricing Option Handlers
+  const addPricingOption = () => {
+    const initialGroupPrices = {};
+    groups.forEach(size => {
+      initialGroupPrices[size] = { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+    });
+    setPricingOptions([
+      ...pricingOptions,
+      {
+        id: Date.now().toString(),
+        hotelName: '',
+        mealPlan: 'Breakfast',
+        travelType: 'Private Coach',
+        groupPrices: initialGroupPrices
+      }
     ]);
   };
 
-  const deleteGroupPricingRow = (idx) => {
-    setGroupPricing(groupPricing.filter((_, i) => i !== idx));
+  const deletePricingOption = (id) => {
+    setPricingOptions(pricingOptions.filter(opt => opt.id !== id));
   };
 
-  const updateGroupPricingRow = (idx, key, value) => {
-    const updated = [...groupPricing];
-    updated[idx][key] = value;
-    setGroupPricing(updated);
+  const updatePricingOptionField = (id, key, value) => {
+    setPricingOptions(pricingOptions.map(opt => 
+      opt.id === id ? { ...opt, [key]: value } : opt
+    ));
+  };
+
+  const updatePricingOptionGroupPrice = (id, size, field, value) => {
+    setPricingOptions(pricingOptions.map(opt => {
+      if (opt.id === id) {
+        const currentGroupPrices = { ...opt.groupPrices };
+        const currentPricesForSize = { ...(currentGroupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 }) };
+        currentPricesForSize[field] = parseFloat(value) || 0;
+        currentGroupPrices[size] = currentPricesForSize;
+        return { ...opt, groupPrices: currentGroupPrices };
+      }
+      return opt;
+    }));
   };
 
   // Calculate Combined Group Totals
   const getCombinedGroupTotals = () => {
-    return groupPricing.reduce((sum, gp) => {
-      const rate = parseFloat(gp.perPerson.replace(/[^\d.]/g, '')) || 0;
-      const size = parseInt(gp.group.replace(/\D/g, '')) || 1;
-      return sum + (rate * size);
-    }, 0);
+    let total = 0;
+    pricingOptions.forEach(opt => {
+      groups.forEach(size => {
+        const prices = opt.groupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+        total += (prices.hotelPrice + prices.mealPrice + prices.travelPrice + prices.otherPrice);
+      });
+    });
+    return total;
+  };
+
+  const getLowestPerPerson = () => {
+    let lowest = Infinity;
+    pricingOptions.forEach(opt => {
+      groups.forEach(size => {
+        if (size > 0) {
+          const prices = opt.groupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+          const grandTotal = prices.hotelPrice + prices.mealPrice + prices.travelPrice + prices.otherPrice;
+          const rate = grandTotal / size;
+          if (rate < lowest) lowest = rate;
+        }
+      });
+    });
+    return lowest === Infinity ? 0 : Math.round(lowest);
+  };
+
+  const getHighestPerPerson = () => {
+    let highest = 0;
+    pricingOptions.forEach(opt => {
+      groups.forEach(size => {
+        if (size > 0) {
+          const prices = opt.groupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+          const grandTotal = prices.hotelPrice + prices.mealPrice + prices.travelPrice + prices.otherPrice;
+          const rate = grandTotal / size;
+          if (rate > highest) highest = rate;
+        }
+      });
+    });
+    return Math.round(highest);
   };
 
   const handleFinalSubmit = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       alert("Authorization token missing. Please login again.");
+      return;
+    }
+
+    if (pricingOptions.length === 0) {
+      alert("Please add at least one hotel pricing option before completing the trip.");
       return;
     }
 
@@ -263,6 +570,7 @@ export default function TripManage() {
           inclusions: selectedInclusions,
           exclusions: selectedExclusions,
           policies: selectedPolicies,
+          important_notes: selectedImportantNotes,
           places: placeIds
         })
       });
@@ -275,15 +583,7 @@ export default function TripManage() {
       const step1Data = await step1Res.json();
       const draftToken = step1Data.draft_token;
 
-      const formattedDays = itineraryDays.map(d => ({
-        place: d.place,
-        meal_plan: Object.keys(d.meals).filter(k => d.meals[k]).map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', '),
-        description: d.description || 'Day activities',
-        trip_day: parseInt(d.day),
-        trip_date: startDate,
-        notes: d.notes || ''
-      }));
-
+      // 2. Submit Step 2 Days to Redis Cache
       const step2Res = await fetch('/api/itinerary/step2/', {
         method: 'POST',
         headers: {
@@ -292,29 +592,50 @@ export default function TripManage() {
         },
         body: JSON.stringify({
           draft_token: draftToken,
-          days: formattedDays
+          days: itineraryDays.map((day) => {
+            const dateObj = new Date(new Date(startDate).getTime() + (day.trip_day - 1) * 24 * 60 * 60 * 1000);
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const yyyy_mm_dd = `${yyyy}-${mm}-${dd}`;
+
+            return {
+              trip_day: day.trip_day,
+              trip_date: yyyy_mm_dd,
+              meal_plan: day.meal_plan || 'Breakfast',
+              place: day.place || null,
+              description: day.description || '',
+              notes: day.notes || '',
+              items: day.items || []
+            };
+          })
         })
       });
 
       if (!step2Res.ok) {
         const errData = await step2Res.json();
-        alert(`Step 2 Failed: ${errData.error || 'Check days details'}`);
+        alert(`Step 2 Failed: ${errData.error || 'Check itinerary details'}`);
         return;
       }
 
-      const backendGroups = groupPricing.map(gp => {
-        const matchedHotel = availableHotels.find(h => h.name.toLowerCase() === gp.hotel.toLowerCase());
-        return {
-          group_size: parseInt(gp.group.replace(/\D/g, '')) || 1,
-          hotel: matchedHotel ? matchedHotel.id : null,
-          hotel_price: parseFloat(gp.other?.replace(/[^\d.]/g, '') || '5000'),
-          meal_price: parseFloat(gp.perPerson?.replace(/[^\d.]/g, '') || '1000') * 0.1,
-          meals_included: gp.meal,
-          travel_price: parseFloat(gp.perPerson?.replace(/[^\d.]/g, '') || '1000') * 0.2,
-          travel_type: gp.travel,
-          other_charges: parseFloat(gp.other?.replace(/[^\d.]/g, '') || '1500') * 0.3,
-          other_charge_type: 'Service Fee'
-        };
+      // 3. Final submission
+      const backendGroups = [];
+      pricingOptions.forEach(opt => {
+        const matchedHotel = availableHotels.find(h => h.name.toLowerCase() === opt.hotelName.toLowerCase());
+        groups.forEach(size => {
+          const prices = opt.groupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+          backendGroups.push({
+            group_size: size,
+            hotel: matchedHotel ? matchedHotel.id : null,
+            hotel_price: prices.hotelPrice,
+            meal_price: prices.mealPrice,
+            meals_included: opt.mealPlan,
+            travel_price: prices.travelPrice,
+            travel_type: opt.travelType,
+            other_charges: prices.otherPrice,
+            other_charge_type: 'Service Fee'
+          });
+        });
       });
 
       const finalRes = await fetch('/api/itinerary/submit/', {
@@ -325,20 +646,32 @@ export default function TripManage() {
         },
         body: JSON.stringify({
           draft_token: draftToken,
-          groups: backendGroups
+          groups: backendGroups,
+          trip_id: tripId || null
         })
       });
 
       if (finalRes.ok) {
-        alert("Trip saved and finalized successfully!");
-        setStep(1);
-        setCustomerName('');
-        setContactName('');
-        setTripTitle('');
-        setStartDate('');
-        setEndDate('');
-        setItineraryDays([]);
-        setGroupPricing([]);
+        alert(tripId ? "Trip updated successfully!" : "Trip created successfully!");
+        
+        if (tripId && setActiveTab) {
+          if (setEditTripId) setEditTripId(null);
+          setActiveTab('Trip Inventory');
+        } else {
+          setStep(1);
+          setCustomerName('');
+          setContactName('');
+          setTripTitle('');
+          setStartDate('');
+          setEndDate('');
+          setItineraryDays([]);
+          setSelectedInclusions([]);
+          setSelectedExclusions([]);
+          setSelectedPolicies([]);
+          setSelectedImportantNotes([]);
+          setGroups([]);
+          setPricingOptions([]);
+        }
       } else {
         const errData = await finalRes.json();
         alert(`Submission Failed: ${errData.error || 'Check details'}`);
@@ -567,6 +900,14 @@ export default function TripManage() {
                 selectedValues={selectedPolicies}
                 onChange={setSelectedPolicies}
               />
+
+              <MultiSearchableSelect
+                label="Important Notes"
+                placeholder="Search and add important notes..."
+                options={importantNotesList}
+                selectedValues={selectedImportantNotes}
+                onChange={setSelectedImportantNotes}
+              />
             </div>
 
             {/* Info notice bar */}
@@ -585,7 +926,7 @@ export default function TripManage() {
                 onClick={handleNext}
                 className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
               >
-                <span>Save & Continue</span>
+                <span>{tripId ? "Update & Continue" : "Save & Continue"}</span>
                 <svg className="w-4 h-4 stroke-[2.2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
@@ -611,26 +952,17 @@ export default function TripManage() {
               </div>
 
               <div className="py-2 border-y border-slate-100">
-                <div className="flex justify-between items-center text-xs py-1.5">
-                  <span className="text-slate-400 font-medium">Current Status</span>
-                  <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    Drafting
-                  </span>
-                </div>
 
                 <div className="flex justify-between items-center text-xs py-1.5">
                   <span className="text-slate-400 font-medium">Trip Duration</span>
-                  <span className="text-slate-700 font-bold">{itineraryDays.length} Days</span>
+                  <span className="text-slate-700 font-bold">{getDaysDuration()} Days</span>
                 </div>
 
                 <div className="flex justify-between items-center text-xs py-1.5">
                   <span className="text-slate-400 font-medium">Created Date</span>
-                  <span className="text-slate-700 font-bold">Aug 23, 2026</span>
-                </div>
-
-                <div className="flex justify-between items-center text-xs py-1.5">
-                  <span className="text-slate-400 font-medium">ID Number</span>
-                  <span className="text-blue-600 font-semibold hover:underline cursor-pointer">TP-98231</span>
+                  <span className="text-slate-700 font-bold">
+                    {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
                 </div>
               </div>
 
@@ -660,9 +992,7 @@ export default function TripManage() {
           {/* Breadcrumbs and headers */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
             <div>
-              <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">
-                Create New Trip
-              </h2>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">{tripId ? "Edit Trip" : "Create New Trip"}</h2>
               <p className="text-xs text-slate-400 font-semibold mt-1">
                 Build customer details, itinerary and pricing
               </p>
@@ -679,24 +1009,9 @@ export default function TripManage() {
                 </div>
                 <div>
                   <span className="text-slate-400 uppercase tracking-wider block">Duration</span>
-                  <span className="text-slate-800 block mt-0.5">{itineraryDays.length} Days</span>
+                  <span className="text-slate-800 block mt-0.5">{getDaysDuration()} Days</span>
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                onClick={handleBack}
-                className="flex-1 sm:flex-none py-2 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold cursor-pointer"
-              >
-                Save Draft
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 sm:flex-none py-2.5 px-4.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
-              >
-                Save & Continue
-              </button>
             </div>
           </div>
 
@@ -710,8 +1025,7 @@ export default function TripManage() {
                   </svg>
                 </span>
                 <input
-                  type="text"
-                  placeholder="Search places or cities..."
+                  type="text"                  placeholder="Search places or cities..."
                   className="block w-full pl-9 pr-4 py-2 text-[12px] bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-500/30"
                 />
               </div>
@@ -732,6 +1046,14 @@ export default function TripManage() {
               <span className="text-xs text-slate-400 font-bold">{itineraryDays.length} Days Planned</span>
               <button 
                 onClick={() => {
+                  if (!startDate || !endDate) {
+                    alert("Please select Trip Start Date and End Date first.");
+                    return;
+                  }
+                  if (itineraryDays.length >= getDaysDuration()) {
+                    alert(`You cannot create more days than the trip duration (${getDaysDuration()} Days).`);
+                    return;
+                  }
                   setEditingDayIndex(null);
                   setShowDayModal(true);
                 }}
@@ -900,164 +1222,226 @@ export default function TripManage() {
                 onClick={handleNext}
                 className="py-2.5 px-4.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
               >
-                Save & Continue
+                {tripId ? "Update & Continue" : "Save & Continue"}
               </button>
             </div>
           </div>
 
         </div>
       )}
-
       {/* -------------------- STEP 3: PRICING VIEW -------------------- */}
       {step === 3 && (
         <div className="space-y-6">
           
-          {/* Header block with completed steps */}
-          <div className="flex justify-between items-center bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
-                Group Pricing
-              </h2>
-              <p className="text-xs text-slate-400 font-semibold mt-1">
-                Configure multi-tier pricing based on group occupancy.
-              </p>
-            </div>
-            <button
-              onClick={addGroupPricingRow}
-              className="flex items-center gap-1 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm"
-            >
-              Add Pricing Row
-            </button>
+          {/* Header block */}
+          <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
+              Group-Wise Pricing Configurator
+            </h2>
+            <p className="text-xs text-slate-400 font-semibold mt-1">
+              First define group sizes, then configure package pricing tier options for each hotel.
+            </p>
           </div>
 
-          {/* Pricing table */}
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3.5 px-6">Group (size)</th>
-                    <th className="py-3.5 px-6">Hotel</th>
-                    <th className="py-3.5 px-6">Meal</th>
-                    <th className="py-3.5 px-6">Travel</th>
-                    <th className="py-3.5 px-6">Other Cost</th>
-                    <th className="py-3.5 px-6 text-right">Per Person Rate</th>
-                    <th className="py-3.5 px-6 text-right w-16">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100/80 font-semibold align-middle text-slate-700">
-                  {groupPricing.length > 0 ? (
-                    groupPricing.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/40 transition-colors">
-                        <td className="py-4 px-6 text-slate-800 font-bold">
-                          <input 
-                            type="text"
-                            value={item.group}
-                            onChange={(e) => updateGroupPricingRow(idx, 'group', e.target.value)}
-                            placeholder="e.g. Group 20"
-                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-semibold text-slate-800"
-                          />
-                        </td>
-                        <td className="py-4 px-6 text-slate-600 font-medium">
-                          <div className="relative max-w-xs">
-                            <select 
-                              value={item.hotel}
-                              onChange={(e) => updateGroupPricingRow(idx, 'hotel', e.target.value)}
-                              className="appearance-none block w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-slate-600 font-semibold cursor-pointer"
-                            >
-                              <option value="">Select Hotel</option>
-                              {availableHotels.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
-                            </select>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-slate-600 font-medium">
-                          <div className="relative max-w-xs">
-                            <select 
-                              value={item.meal}
-                              onChange={(e) => updateGroupPricingRow(idx, 'meal', e.target.value)}
-                              className="appearance-none block w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-slate-600 font-semibold cursor-pointer"
-                            >
-                              <option value="Breakfast">Breakfast</option>
-                              <option value="Half Board">Half Board</option>
-                              <option value="Full Board">Full Board</option>
-                            </select>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-slate-600 font-medium">
-                          <div className="relative max-w-xs">
-                            <select 
-                              value={item.travel}
-                              onChange={(e) => updateGroupPricingRow(idx, 'travel', e.target.value)}
-                              className="appearance-none block w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-slate-600 font-semibold cursor-pointer"
-                            >
-                              <option value="Private Coach">Private Coach</option>
-                              <option value="SUV Fleet">SUV Fleet</option>
-                              <option value="Travel Van">Travel Van</option>
-                            </select>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-slate-500 font-medium">
-                          <input 
-                            type="text"
-                            value={item.other}
-                            onChange={(e) => updateGroupPricingRow(idx, 'other', e.target.value)}
-                            placeholder="₹1,500"
-                            className="w-20 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-semibold text-slate-800"
-                          />
-                        </td>
-                        <td className="py-4 px-6 text-right text-blue-600 font-bold">
-                          <input 
-                            type="text"
-                            value={item.perPerson}
-                            onChange={(e) => updateGroupPricingRow(idx, 'perPerson', e.target.value)}
-                            placeholder="₹10,500"
-                            className="w-24 px-2 py-1 text-xs border border-slate-200 rounded text-right focus:outline-none focus:border-blue-500 font-semibold text-blue-600"
-                          />
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <button
-                            onClick={() => deleteGroupPricingRow(idx)}
-                            className="hover:text-red-500 p-1 cursor-pointer transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="text-center py-12 bg-white text-slate-400 text-xs font-semibold">
-                        No pricing tiers added yet. Click "Add Pricing Row" to define occupancy rates.
-                      </td>
-                    </tr>
-                  )}
-                  {/* Summary group total row */}
-                  <tr className="bg-slate-50/50 font-extrabold text-slate-800">
-                    <td className="py-4.5 px-6 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      <span>Group Total</span>
-                    </td>
-                    <td className="py-4.5 px-6" />
-                    <td className="py-4.5 px-6" />
-                    <td className="py-4.5 px-6" />
-                    <td className="py-4.5 px-6" />
-                    <td className="py-4.5 px-6 text-right text-base text-slate-800 font-extrabold flex items-center justify-end gap-3">
-                      <span>₹{getCombinedGroupTotals().toLocaleString('en-IN')}</span>
-                      <button className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                        </svg>
-                      </button>
-                    </td>
-                    <td className="py-4.5 px-6" />
-                  </tr>
-                </tbody>
-              </table>
+          {/* SECTION 1: Group sizes configuration */}
+          <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              1. Define Group Sizes (PAX)
+            </h3>
+            
+            {/* Added group sizes list */}
+            <div className="flex flex-wrap gap-2.5 items-center">
+              {groups.map(size => (
+                <div 
+                  key={size} 
+                  className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-extrabold"
+                >
+                  <span>{size} PAX</span>
+                  <button
+                    type="button"
+                    onClick={() => removeGroupSize(size)}
+                    className="hover:text-red-500 font-bold ml-1 text-[13px] cursor-pointer"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+              
+              {/* Add group input */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="e.g. 15"
+                  value={newGroupSize}
+                  onChange={(e) => setNewGroupSize(e.target.value)}
+                  className="w-20 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-bold"
+                />
+                <button
+                  type="button"
+                  onClick={addGroupSize}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                >
+                  + Add Group
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* SECTION 2: Hotel options configuration */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                2. Configure Hotel Pricing Tiers
+              </h3>
+              <button
+                type="button"
+                onClick={addPricingOption}
+                className="flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-sm transition-colors"
+              >
+                + Add Hotel Pricing Option
+              </button>
+            </div>
+
+            {pricingOptions.map((opt, optIdx) => (
+              <div key={opt.id} className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden p-6 space-y-4">
+                {/* Header */}
+                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                  <span className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                    Option #{optIdx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => deletePricingOption(opt.id)}
+                    className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                  >
+                    Delete Option
+                  </button>
+                </div>
+
+                {/* Dropdowns */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Hotel</label>
+                    <select
+                      value={opt.hotelName}
+                      onChange={(e) => updatePricingOptionField(opt.id, 'hotelName', e.target.value)}
+                      className="block w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                    >
+                      <option value="">Select Hotel</option>
+                      {availableHotels.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meal Plan</label>
+                    <select
+                      value={opt.mealPlan}
+                      onChange={(e) => updatePricingOptionField(opt.id, 'mealPlan', e.target.value)}
+                      className="block w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                    >
+                      <option value="Breakfast">Breakfast</option>
+                      <option value="Half Board">Half Board</option>
+                      <option value="Full Board">Full Board</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Travel Type</label>
+                    <select
+                      value={opt.travelType}
+                      onChange={(e) => updatePricingOptionField(opt.id, 'travelType', e.target.value)}
+                      className="block w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                    >
+                      <option value="Private Coach">Private Coach</option>
+                      <option value="SUV Fleet">SUV Fleet</option>
+                      <option value="Travel Van">Travel Van</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Table for group pricing configurations */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-2.5 px-4">Group Size</th>
+                        <th className="py-2.5 px-4">Hotel Price (₹)</th>
+                        <th className="py-2.5 px-4">Meal Price (₹)</th>
+                        <th className="py-2.5 px-4">Travel Price (₹)</th>
+                        <th className="py-2.5 px-4">Other Price (₹)</th>
+                        <th className="py-2.5 px-4 text-right">Sub-total</th>
+                        <th className="py-2.5 px-4 text-right">Per Person</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                      {groups.map(size => {
+                        const prices = opt.groupPrices[size] || { hotelPrice: 0, mealPrice: 0, travelPrice: 0, otherPrice: 0 };
+                        const subtotal = prices.hotelPrice + prices.mealPrice + prices.travelPrice + prices.otherPrice;
+                        const perPersonRate = size > 0 ? Math.round(subtotal / size) : 0;
+                        return (
+                          <tr key={size} className="hover:bg-slate-50/50">
+                            <td className="py-3 px-4 font-bold text-slate-800">{size} PAX</td>
+                            <td className="py-3 px-4">
+                              <input
+                                type="number"
+                                value={prices.hotelPrice || ''}
+                                onChange={(e) => updatePricingOptionGroupPrice(opt.id, size, 'hotelPrice', e.target.value)}
+                                placeholder="0"
+                                className="w-24 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-bold"
+                              />
+                            </td>
+                            <td className="py-3 px-4">
+                              <input
+                                type="number"
+                                value={prices.mealPrice || ''}
+                                onChange={(e) => updatePricingOptionGroupPrice(opt.id, size, 'mealPrice', e.target.value)}
+                                placeholder="0"
+                                className="w-24 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-bold"
+                              />
+                            </td>
+                            <td className="py-3 px-4">
+                              <input
+                                type="number"
+                                value={prices.travelPrice || ''}
+                                onChange={(e) => updatePricingOptionGroupPrice(opt.id, size, 'travelPrice', e.target.value)}
+                                placeholder="0"
+                                className="w-24 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-bold"
+                              />
+                            </td>
+                            <td className="py-3 px-4">
+                              <input
+                                type="number"
+                                value={prices.otherPrice || ''}
+                                onChange={(e) => updatePricingOptionGroupPrice(opt.id, size, 'otherPrice', e.target.value)}
+                                placeholder="0"
+                                className="w-24 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:border-blue-500 font-bold"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-800">
+                              ₹{subtotal.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-3 px-4 text-right text-blue-600 font-bold">
+                              ₹{perPersonRate.toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {groups.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="text-center py-6 text-slate-400 italic">
+                            No groups defined yet. Add groups above.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+            
+            {pricingOptions.length === 0 && (
+              <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-slate-400 font-bold text-xs">
+                No hotel pricing configurations added yet. Click "Add Hotel Pricing Option" to start.
+              </div>
+            )}
           </div>
 
           {/* Pricing summary title */}
@@ -1078,10 +1462,7 @@ export default function TripManage() {
               <div>
                 <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Lowest / Person</span>
                 <span className="block text-xl font-extrabold text-slate-800 tracking-tight mt-1">
-                  ₹{(groupPricing.reduce((min, gp) => {
-                    const rate = parseFloat(gp.perPerson.replace(/[^\d.]/g, '')) || 0;
-                    return min === 0 ? rate : Math.min(min, rate);
-                  }, 0)).toLocaleString('en-IN')}
+                  ₹{getLowestPerPerson().toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="w-12 h-12 bg-slate-50 border border-slate-200/50 rounded-xl flex items-center justify-center text-slate-400">
@@ -1096,10 +1477,7 @@ export default function TripManage() {
               <div>
                 <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Highest / Person</span>
                 <span className="block text-xl font-extrabold text-slate-800 tracking-tight mt-1">
-                  ₹{(groupPricing.reduce((max, gp) => {
-                    const rate = parseFloat(gp.perPerson.replace(/[^\d.]/g, '')) || 0;
-                    return Math.max(max, rate);
-                  }, 0)).toLocaleString('en-IN')}
+                  ₹{getHighestPerPerson().toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="w-12 h-12 bg-slate-50 border border-slate-200/50 rounded-xl flex items-center justify-center text-slate-400">
@@ -1144,7 +1522,7 @@ export default function TripManage() {
                 <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Save & Complete Trip</span>
+                <span>{tripId ? "Update Trip" : "Save & Complete Trip"}</span>
               </button>
             </div>
           </div>
@@ -1162,6 +1540,10 @@ export default function TripManage() {
         onSave={handleSaveDay}
         initialData={editingDayIndex !== null ? itineraryDays[editingDayIndex] : null}
         places={availablePlaces}
+        cities={availableCities}
+        countries={availableCountries}
+        itineraryDays={itineraryDays}
+        maxDays={getDaysDuration()}
       />
 
     </div>

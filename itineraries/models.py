@@ -1,6 +1,6 @@
 import uuid
 from django.db import models
-from conditions.models import Inclusion, Exclusion, Policy
+from conditions.models import Inclusion, Exclusion, Policy, ImportantNote
 from hotels.models import Hotel
 from places.models import Place
 
@@ -14,6 +14,7 @@ class Itinerary(models.Model):
     inclusions = models.ManyToManyField(Inclusion, blank=True)
     exclusions = models.ManyToManyField(Exclusion, blank=True)
     policies = models.ManyToManyField(Policy, blank=True)
+    important_notes = models.ManyToManyField(ImportantNote, blank=True)
     places = models.ManyToManyField(Place, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -86,8 +87,8 @@ class ItineraryDay(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     itinerary = models.ForeignKey(Itinerary, related_name='days', on_delete=models.CASCADE)
     city = models.ForeignKey('places.City', on_delete=models.PROTECT, null=True, blank=True)
-    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='itinerary_days')
-    meal_plan = models.CharField(max_length=255)
+    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='itinerary_days', null=True, blank=True)
+    meal_plan = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     trip_day = models.IntegerField()  # e.g. 1, 2, 3
     trip_date = models.DateField()    # must fall between start and end date
@@ -95,7 +96,7 @@ class ItineraryDay(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.place:
+        if self.place and not self.city:
             self.city = self.place.city
             
         if self.meal_plan:
@@ -123,4 +124,41 @@ class ItineraryDay(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Day {self.trip_day}: {self.place} ({self.city})"
+        if self.place:
+            return f"Day {self.trip_day}: {self.place} ({self.city})"
+        return f"Day {self.trip_day}: Date {self.trip_date}"
+
+
+class ItineraryItem(models.Model):
+    ITEM_TYPES = [
+        ('Sightseeing', 'Sightseeing'),
+        ('Activity', 'Activity'),
+        ('Meal', 'Meal'),
+        ('Hotel', 'Hotel'),
+        ('Transport', 'Transport'),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    itinerary_day = models.ForeignKey(ItineraryDay, related_name='items', on_delete=models.CASCADE)
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPES)
+    city = models.ForeignKey('places.City', on_delete=models.PROTECT, null=True, blank=True, related_name='itinerary_items')
+    place = models.ForeignKey(Place, on_delete=models.SET_NULL, null=True, blank=True, related_name='itinerary_items')
+    places = models.ManyToManyField(Place, blank=True, related_name='itinerary_items_multi')
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    sequence = models.IntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
+    
+    # Transport details
+    from_city = models.ForeignKey('places.City', on_delete=models.PROTECT, null=True, blank=True, related_name='transport_from_items')
+    to_city = models.ForeignKey('places.City', on_delete=models.PROTECT, null=True, blank=True, related_name='transport_to_items')
+    departure_time = models.TimeField(null=True, blank=True)
+    arrival_time = models.TimeField(null=True, blank=True)
+    transport_mode = models.CharField(max_length=50, null=True, blank=True)
+    duration = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        ordering = ['sequence', 'start_time']
+
+    def __str__(self):
+        return f"{self.item_type} - {self.sequence} (Day {self.itinerary_day.trip_day})"
+

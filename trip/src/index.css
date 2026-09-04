@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+@theme {
+  /* Theme-specific custom properties */
+  --color-primary: #1E3A5F;
+  --color-secondary: #2F5D8C;
+  --color-background-custom: #F5F7FA;
+  --color-card-custom: #FFFFFF;
+  --color-text-custom: #1F2937;
+  --color-muted-custom: #6B7280;
+  --color-border-custom: #E5E7EB;
+  --color-success-custom: #198754;
+  --color-warning-custom: #D97706;
+
+  /* Overriding standard Tailwind v4 color variables to map the classic theme across all pages */
+  --color-blue-50: #f0f4f8;
+  --color-blue-100: #dbe4ee;
+  --color-blue-500: #2F5D8C;
+  --color-blue-600: #2F5D8C;
+  --color-blue-700: #1E3A5F;
+  --color-blue-800: #112237;
+
+  --color-slate-50: #F5F7FA;
+  --color-slate-100: #E5E7EB;
+  --color-slate-200: #D1D5DB;
+  --color-slate-300: #9CA3AF;
+  --color-slate-400: #6B7280;
+  --color-slate-500: #6B7280;
+  --color-slate-600: #4B5563;
+  --color-slate-700: #374151;
+  --color-slate-800: #1F2937;
+  --color-slate-900: #111827;
+
+  --color-green-500: #198754;
+  --color-emerald-50: #f0fdf4;
+  --color-emerald-600: #198754;
+  --color-emerald-700: #157347;
+
+  --color-teal-50: #f0fdfa;
+  --color-teal-600: #198754;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-500: #D97706;
+  --color-amber-600: #b45309;
+
+  --color-indigo-50: #eef2ff;
+  --color-indigo-500: #2F5D8C;
+  --color-indigo-600: #1E3A5F;
+
+  /* Sidebar theme customization */
+  --color-sidebar-bg: #0F172A;
+  --color-sidebar-hover: #1E293B;
+  --color-sidebar-active: #2563EB;
+  --color-sidebar-text: #F8FAFC;
+  --color-sidebar-secondary: #94A3B8;
+  --color-sidebar-border: #334155;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: var(--color-slate-800);
+}

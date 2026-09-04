@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .models import Inclusion, Exclusion, Policy
-from .serializers import InclusionSerializer, ExclusionSerializer, PolicySerializer
+from .models import Inclusion, Exclusion, Policy, ImportantNote
+from .serializers import InclusionSerializer, ExclusionSerializer, PolicySerializer, ImportantNoteSerializer
 
 # --- INCLUSIONS VIEWS ---
 @api_view(['GET', 'POST'])
@@ -133,3 +133,46 @@ def policy_detail_view(request, pk):
         elif request.method == 'DELETE':
             policy.delete()
             return Response({"message": "Policy deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+# --- IMPORTANT NOTES VIEWS ---
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def important_note_list_create_view(request):
+    if request.method == 'GET':
+        notes = ImportantNote.objects.all()
+        serializer = ImportantNoteSerializer(notes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    elif request.method == 'POST':
+        if not request.user or not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = ImportantNoteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([AllowAny])
+def important_note_detail_view(request, pk):
+    note = get_object_or_404(ImportantNote, pk=pk)
+    
+    if request.method == 'GET':
+        serializer = ImportantNoteSerializer(note)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    elif request.method in ['PUT', 'DELETE']:
+        if not request.user or not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        if request.method == 'PUT':
+            serializer = ImportantNoteSerializer(note, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        elif request.method == 'DELETE':
+            note.delete()
+            return Response({"message": "Important note deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
