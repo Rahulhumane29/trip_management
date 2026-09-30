@@ -83,4 +83,4 @@ def hotel_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             hotel.delete()
-            return Response({"message": "Hotel deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Hotel deleted successfully."}, status=status.HTTP_200_OK)

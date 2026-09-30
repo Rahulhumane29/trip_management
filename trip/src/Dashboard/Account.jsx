@@ -10,6 +10,8 @@ export default function Account() {
   const [email, setEmail] = useState("");
   const [fax, setFax] = useState("");
   const [address, setAddress] = useState("");
+  const [logo, setLogo] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
 
   const [activeSubTab, setActiveSubTab] = useState("Account");
   const [saveStatus, setSaveStatus] = useState("");
@@ -67,6 +69,7 @@ export default function Account() {
         setEmail(accountData.email || "");
         setFax(accountData.fax || "");
         setAddress(accountData.address || "");
+        setLogo(accountData.logo || null);
         showToastMessage("Account details loaded successfully.", "success");
       }
     })
@@ -94,19 +97,38 @@ export default function Account() {
     const url = companyId ? `/api/accounts/${companyId}/` : '/api/accounts/';
     const method = companyId ? 'PUT' : 'POST';
 
-    fetch(url, {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
+    let body;
+    let headers = {
+      'Authorization': `Bearer ${token}`
+    };
+
+    if (logoFile || logo === null) {
+      body = new FormData();
+      body.append('name', companyName || "My Company");
+      body.append('telephone', telephone);
+      body.append('email', email);
+      body.append('fax', fax);
+      body.append('address', address);
+      if (logoFile) {
+        body.append('logo', logoFile);
+      } else if (logo === null) {
+        body.append('logo', '');
+      }
+    } else {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify({
         name: companyName || "My Company",
         telephone: telephone,
         email: email,
         fax: fax,
         address: address
-      })
+      });
+    }
+
+    fetch(url, {
+      method: method,
+      headers: headers,
+      body: body
     })
     .then(async res => {
       const data = await res.json();
@@ -120,8 +142,13 @@ export default function Account() {
       if (!companyId && data.id) {
         setCompanyId(data.id);
       }
+      if (data.logo !== undefined) {
+        setLogo(data.logo);
+      }
+      setLogoFile(null);
       setIsEditing(false);
       showToastMessage("Changes saved successfully!", "success");
+      window.dispatchEvent(new Event('logoUpdated'));
     })
     .catch(err => {
       setSaveStatus("");
@@ -149,6 +176,8 @@ export default function Account() {
       setEmail(accountData.email || "");
       setFax(accountData.fax || "");
       setAddress(accountData.address || "");
+      setLogo(accountData.logo || null);
+      setLogoFile(null);
       setSaveStatus("");
       showToastMessage("Reset successfully.", "success");
     })
@@ -244,43 +273,64 @@ export default function Account() {
   </button>
 </div>
           {/* =====================================
-              Profile Photo
+              Company Logo (Rectangle)
           ====================================== */}
           <div className="flex items-center gap-5">
 
-            {/* Avatar */}
-            <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
-              <svg
-                className="w-full h-full text-slate-400"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
+            {/* Rectangular Logo Box */}
+            <div className="w-36 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shrink-0 flex items-center justify-center p-2 shadow-xs">
+              {(logo || logoFile) ? (
+                <img
+                  src={logoFile ? URL.createObjectURL(logoFile) : (logo.startsWith('http') ? logo : `http://localhost:8000${logo}`)}
+                  alt="Company Logo"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-slate-400">
+                  <svg className="w-6 h-6 text-slate-300 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                  </svg>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Logo</span>
+                </div>
+              )}
             </div>
 
             {/* Photo Actions */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-3">
 
-                <button
-                  type="button"
-                  className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                <label
+                  className={`px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 transition-all ${isEditing ? "cursor-pointer hover:bg-slate-50" : "cursor-not-allowed opacity-50"}`}
                 >
-                  Change Photo
-                </button>
+                  {(logo || logoFile) ? "Change Logo" : "Upload Logo"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    disabled={!isEditing}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setLogoFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                </label>
 
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
-                >
-                  Remove
-                </button>
+                {(logo || logoFile) && (
+                  <button
+                    type="button"
+                    disabled={!isEditing}
+                    onClick={() => { setLogo(null); setLogoFile(null); }}
+                    className={`text-xs font-semibold text-slate-400 transition-all ${isEditing ? "cursor-pointer hover:text-slate-600" : "cursor-not-allowed opacity-50"}`}
+                  >
+                    Remove
+                  </button>
+                )}
 
               </div>
 
               <span className="block text-[10px] text-slate-400 font-medium">
-                JPG, GIF or PNG. Max size of 2MB.
+                JPG, GIF, PNG or SVG. Rectangular logo recommended.
               </span>
             </div>
           </div>

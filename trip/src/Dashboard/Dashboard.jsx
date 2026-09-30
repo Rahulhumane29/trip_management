@@ -13,6 +13,7 @@ import TripInventory from './TripInventory';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [editTripId, setEditTripId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // KPI Data
   const stats = [
@@ -65,17 +66,17 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans flex select-none">
       
-      {/* Fixed Sidebar */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Sidebar */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} mobileOpen={sidebarOpen} setMobileOpen={setSidebarOpen} />
 
       {/* Main Content Area */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen w-full transition-all">
         
-        {/* Fixed Header */}
-        <Header />
+        {/* Header */}
+        <Header activeTab={activeTab} setActiveTab={setActiveTab} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
         {/* Content Wrapper */}
-        <main className="flex-1 pt-[76px] p-8 space-y-8">
+        <main className="flex-1 mt-[76px] p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 max-w-full overflow-hidden">
           
           {activeTab === 'Settings' ? (
             <Account />
@@ -83,7 +84,7 @@ export default function Dashboard() {
             <Places />
           ) : activeTab === 'Conditions' ? (
             <Conditions />
-          ) : activeTab === 'Trips' ? (
+          ) : activeTab === 'Hotels' ? (
             <Hotel />
           ) : activeTab === 'TripManage' ? (
             <TripManage tripId={editTripId} setActiveTab={setActiveTab} setEditTripId={setEditTripId} />
@@ -92,20 +93,20 @@ export default function Dashboard() {
           ) : (
             <>
               {/* Main Content Title Bar */}
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight leading-tight">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-tight">
                     Operational Overview
                   </h2>
-                  <p className="text-[13px] text-slate-500 mt-1 font-normal">
-                    Welcome back, Alex. Here's what's happening with your trips today.
+                  <p className="text-[12px] sm:text-[13px] text-slate-500 mt-1 font-normal">
+                    Welcome back. Here's what's happening with your trips today.
                   </p>
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-3">
                   {/* Export button */}
-                  <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer shadow-sm">
+                  <button className="flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer shadow-sm">
                     <svg className="w-4 h-4 text-slate-400 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -113,7 +114,12 @@ export default function Dashboard() {
                   </button>
 
                   {/* Create New Trip button */}
-                  <button className="flex items-center gap-2 px-4.5 py-2.5 bg-[#ff6a00] hover:bg-[#e65c00] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-orange-500/10 hover:shadow-orange-500/20">
+                  <button 
+                    onClick={() => {
+                      setEditTripId(null);
+                      setActiveTab('TripManage');
+                    }}
+                    className="flex items-center gap-2 px-3.5 sm:px-4.5 py-2 sm:py-2.5 bg-[#ff6a00] hover:bg-[#e65c00] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-orange-500/10 hover:shadow-orange-500/20">
                     <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>

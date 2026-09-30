@@ -15,9 +15,9 @@ function MultiSearchableSelect({ label, placeholder, options, selectedValues, on
       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </label>
-      
+
       {/* Container wrapper for pills and input */}
-      <div 
+      <div
         className="min-h-[38px] p-1.5 flex flex-wrap items-center gap-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
         onClick={() => setIsOpen(true)}
       >
@@ -25,8 +25,8 @@ function MultiSearchableSelect({ label, placeholder, options, selectedValues, on
           const opt = options.find(o => o.id === valId);
           if (!opt) return null;
           return (
-            <span 
-              key={valId} 
+            <span
+              key={valId}
               className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold"
             >
               <span>{opt.text}</span>
@@ -43,7 +43,7 @@ function MultiSearchableSelect({ label, placeholder, options, selectedValues, on
             </span>
           );
         })}
-        
+
         <input
           type="text"
           placeholder={selectedValues.length === 0 ? placeholder : ''}
@@ -90,6 +90,10 @@ function MultiSearchableSelect({ label, placeholder, options, selectedValues, on
 export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
   const [step, setStep] = useState(1);
 
+  // Mode: create vs edit
+  const mode = tripId ? "edit" : "create";
+  const [draftToken, setDraftToken] = useState(null);
+
   // Lists loaded from backend
   const [availableHotels, setAvailableHotels] = useState([]);
   const [availablePlaces, setAvailablePlaces] = useState([]);
@@ -106,7 +110,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
   const [tripTitle, setTripTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+
   // Selected IDs
   const [selectedHotel, setSelectedHotel] = useState('Select Hotel');
   const [selectedInclusions, setSelectedInclusions] = useState([]);
@@ -156,7 +160,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
           setTripTitle(data.event_title || '');
           setStartDate(data.trip_start_date || '');
           setEndDate(data.trip_end_date || '');
-          
+
           if (data.inclusions_details) {
             setSelectedInclusions(data.inclusions_details.map(item => item.id));
           }
@@ -177,21 +181,36 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
                 snacks: (d.meal_plan || '').includes('Snacks'),
                 dinner: (d.meal_plan || '').includes('Dinner')
               };
-              
+
               let resolvedActivities = [];
+              if (d.places_details && d.places_details.length > 0) {
+                d.places_details.forEach(p => {
+                  const name = p.place_name || p.name;
+                  if (name && !resolvedActivities.includes(name)) resolvedActivities.push(name);
+                });
+              }
               if (d.items) {
                 d.items.forEach(item => {
                   if (item.places_details && item.places_details.length > 0) {
-                    item.places_details.forEach(p => resolvedActivities.push(p.place_name || p.name));
+                    item.places_details.forEach(p => {
+                      const name = p.place_name || p.name;
+                      if (name && !resolvedActivities.includes(name)) resolvedActivities.push(name);
+                    });
                   }
                 });
               }
+              if (resolvedActivities.length === 0 && d.place_details) {
+                resolvedActivities.push(d.place_details.place_name || d.place_details.name);
+              }
+
+              const dayPlacesList = d.places || (d.places_details ? d.places_details.map(p => p.id) : []);
 
               return {
                 day: String(d.trip_day).padStart(2, '0'),
                 date: d.trip_date ? new Date(d.trip_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
                 city: d.city_details ? d.city_details.name : 'Unknown',
-                place: d.place || '',
+                place: d.place || dayPlacesList[0] || '',
+                places: dayPlacesList,
                 activities: resolvedActivities,
                 meals: mealsObj,
                 description: d.description || '',
@@ -213,7 +232,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
               const hotelName = gp.hotel_details ? gp.hotel_details.name : 'Unknown Hotel';
               const mealPlan = gp.meals_included || 'Breakfast';
               const travelType = gp.travel_type || 'Private Coach';
-              
+
               const key = `${hotelName}-${mealPlan}-${travelType}`;
               if (!optionsMap[key]) {
                 optionsMap[key] = {
@@ -393,6 +412,10 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
       dinner: dayData.meal_plan.includes('Dinner')
     };
 
+    const allItemPlaces = Array.from(new Set(
+      (dayData.items || []).flatMap(i => i.places || []).filter(Boolean)
+    ));
+
     const formattedDay = {
       day: String(dayData.trip_day).padStart(2, '0'),
       date: startDate ? new Date(new Date(startDate).getTime() + (dayData.trip_day - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
@@ -401,7 +424,8 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
         year: 'numeric'
       }) : '',
       city: resolvedCity,
-      place: dayData.items?.[0]?.places?.[0] || '', // Fallback first place
+      place: allItemPlaces[0] || dayData.place || '',
+      places: allItemPlaces,
       activities: resolvedActivities,
       meals: mealsObj,
       description: dayData.description,
@@ -480,7 +504,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
   };
 
   const updatePricingOptionField = (id, key, value) => {
-    setPricingOptions(pricingOptions.map(opt => 
+    setPricingOptions(pricingOptions.map(opt =>
       opt.id === id ? { ...opt, [key]: value } : opt
     ));
   };
@@ -553,7 +577,14 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
     }
 
     try {
-      const placeIds = itineraryDays.map(d => d.place).filter(Boolean);
+      const placeIds = Array.from(new Set(
+        itineraryDays.flatMap(d => [
+          ...(d.places || []),
+          d.place,
+          ...(d.items || []).flatMap(i => i.places || []),
+          ...(d.items || []).map(i => i.place)
+        ]).filter(Boolean)
+      ));
 
       const step1Res = await fetch('/api/itinerary/step1/', {
         method: 'POST',
@@ -599,11 +630,19 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const yyyy_mm_dd = `${yyyy}-${mm}-${dd}`;
 
+            const allDayPlaces = Array.from(new Set([
+              ...(day.places || []),
+              day.place,
+              ...(day.items || []).flatMap(i => i.places || []),
+              ...(day.items || []).map(i => i.place)
+            ].filter(Boolean)));
+
             return {
               trip_day: day.trip_day,
               trip_date: yyyy_mm_dd,
               meal_plan: day.meal_plan || 'Breakfast',
-              place: day.place || null,
+              place: allDayPlaces[0] || null,
+              places: allDayPlaces,
               description: day.description || '',
               notes: day.notes || '',
               items: day.items || []
@@ -653,7 +692,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
       if (finalRes.ok) {
         alert(tripId ? "Trip updated successfully!" : "Trip created successfully!");
-        
+
         if (tripId && setActiveTab) {
           if (setEditTripId) setEditTripId(null);
           setActiveTab('Trip Inventory');
@@ -684,22 +723,21 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-6 sm:p-8 select-none font-sans max-w-6xl mx-auto space-y-6">
-      
+
       {/* Top Stepper Indicator row */}
       <div className="flex items-center justify-center gap-12 border-b border-slate-200/50 pb-6 mb-4">
-        
+
         {/* Step 01 indicator */}
         <button
           onClick={() => setStep(1)}
           className="flex items-center gap-3 cursor-pointer group focus:outline-none"
         >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-            step === 1
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === 1
               ? 'bg-blue-600 text-white ring-4 ring-blue-100'
               : step > 1
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-500'
-          }`}>
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-200 text-slate-500'
+            }`}>
             {step > 1 ? (
               <svg className="w-4.5 h-4.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -720,13 +758,12 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
           onClick={() => setStep(2)}
           className="flex items-center gap-3 cursor-pointer group focus:outline-none"
         >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-            step === 2
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === 2
               ? 'bg-blue-600 text-white ring-4 ring-blue-100'
               : step > 2
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-200 text-slate-500'
-          }`}>
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-200 text-slate-500'
+            }`}>
             {step > 2 ? (
               <svg className="w-4.5 h-4.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -747,11 +784,10 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
           onClick={() => setStep(3)}
           className="flex items-center gap-3 cursor-pointer group focus:outline-none"
         >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-            step === 3
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === 3
               ? 'bg-blue-600 text-white ring-4 ring-blue-100'
               : 'bg-slate-200 text-slate-500'
-          }`}>
+            }`}>
             {'03'}
           </div>
           <div className="text-left">
@@ -765,7 +801,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
       {/* -------------------- STEP 1: CUSTOMER DETAILS VIEW -------------------- */}
       {step === 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Form container */}
           <div className="lg:col-span-2 bg-white border border-slate-100/60 p-6 rounded-2xl shadow-sm space-y-6">
             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
@@ -919,7 +955,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
                 Enter the customer details precisely. These details will be used for all itinerary communications and official booking documents. Fields marked with an asterisk (*) are mandatory.
               </p>
             </div>
-            
+
             {/* Continue footer */}
             <div className="flex justify-end pt-4 border-t border-slate-100">
               <button
@@ -937,7 +973,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
           {/* Right info sidebar */}
           <div className="space-y-6">
-            
+
             {/* User details card */}
             <div className="bg-white border border-slate-100/60 p-6 rounded-2xl shadow-sm text-center space-y-4">
               <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto border border-slate-200 bg-slate-100">
@@ -1025,7 +1061,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
                   </svg>
                 </span>
                 <input
-                  type="text"                  placeholder="Search places or cities..."
+                  type="text" placeholder="Search places or cities..."
                   className="block w-full pl-9 pr-4 py-2 text-[12px] bg-slate-50 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-500/30"
                 />
               </div>
@@ -1044,7 +1080,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
             <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
               <span className="text-xs text-slate-400 font-bold">{itineraryDays.length} Days Planned</span>
-              <button 
+              <button
                 onClick={() => {
                   if (!startDate || !endDate) {
                     alert("Please select Trip Start Date and End Date first.");
@@ -1232,7 +1268,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
       {/* -------------------- STEP 3: PRICING VIEW -------------------- */}
       {step === 3 && (
         <div className="space-y-6">
-          
+
           {/* Header block */}
           <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
             <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">
@@ -1248,12 +1284,12 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               1. Define Group Sizes (PAX)
             </h3>
-            
+
             {/* Added group sizes list */}
             <div className="flex flex-wrap gap-2.5 items-center">
               {groups.map(size => (
-                <div 
-                  key={size} 
+                <div
+                  key={size}
                   className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-extrabold"
                 >
                   <span>{size} PAX</span>
@@ -1266,7 +1302,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
                   </button>
                 </div>
               ))}
-              
+
               {/* Add group input */}
               <div className="flex items-center gap-2">
                 <input
@@ -1436,7 +1472,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
                 </div>
               </div>
             ))}
-            
+
             {pricingOptions.length === 0 && (
               <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-slate-400 font-bold text-xs">
                 No hotel pricing configurations added yet. Click "Add Hotel Pricing Option" to start.
@@ -1456,7 +1492,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
           {/* Grid layout for summarized prices */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Box 1: Lowest */}
             <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex justify-between items-center relative overflow-hidden">
               <div>
@@ -1515,7 +1551,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
 
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <span className="text-[11px] text-slate-400 font-semibold">Draft autosaved at 14:42 PM</span>
-              <button 
+              <button
                 onClick={handleFinalSubmit}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
               >
@@ -1531,7 +1567,7 @@ export default function TripManage({ tripId, setActiveTab, setEditTripId }) {
       )}
 
       {/* Add / Edit Day Modal popup */}
-      <AddItineraryDay 
+      <AddItineraryDay
         show={showDayModal}
         onClose={() => {
           setShowDayModal(false);

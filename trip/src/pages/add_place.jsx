@@ -94,6 +94,7 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [status, setStatus] = useState('Active');
 
   // Full datasets loaded from database
@@ -113,6 +114,7 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
         setTitle(initialData.name || '');
         setDescription(initialData.description || '');
         setPhoto(initialData.photo || null);
+        setPhotoPreview(initialData.photo || null);
         setCountry(initialData.country || '');
         setStateName(initialData.state || '');
         setCity(initialData.city || '');
@@ -121,6 +123,7 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
         setTitle('');
         setDescription('');
         setPhoto(null);
+        setPhotoPreview(null);
         setCountry('');
         setStateName('');
         setCity('');
@@ -294,6 +297,7 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
       setTitle('');
       setDescription('');
       setPhoto(null);
+      setPhotoPreview(null);
       setCountry('');
       setStateName('');
       setCity('');
@@ -306,7 +310,8 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
   const handlePhotoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setPhoto(URL.createObjectURL(file));
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
 
@@ -486,8 +491,8 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
                 {/* Image Showcase Box */}
                 <div className="border border-dashed border-slate-200 rounded-xl p-4 text-center bg-slate-50/50 space-y-3">
                   <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200/50 flex items-center justify-center">
-                    {photo ? (
-                      <img src={photo} alt="Place preview" className="w-full h-full object-cover" />
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Place preview" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center text-slate-300">
                         <svg className="w-12 h-12 stroke-[1.25]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -510,7 +515,7 @@ export default function AddPlace({ show, onClose, onSave, initialData }) {
                     <svg className="w-4 h-4 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    <span>Replace Image</span>
+                    <span>{initialData ? 'Replace Image' : 'Upload Image'}</span>
                   </div>
                   <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
                 </label>

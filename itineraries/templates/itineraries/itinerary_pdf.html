@@ -1,491 +1,1775 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <title>Travel Itinerary - {{ itinerary.event_title }}</title>
+
+    <meta charset="UTF-8">
+
+    <title>
+        Travel Itinerary - {{ itinerary.event_title|default:"Travel Itinerary" }}
+    </title>
+
     <style>
+        /* =========================================================
+           PAGE
+        ========================================================= */
+
         @page {
-            size: a4;
-            margin: 1.5cm;
+            size: A4;
+            margin: 10mm 12mm 12mm 12mm;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
             margin: 0;
             padding: 0;
-            background-color: #ffffff;
+            background: #ffffff;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #252525;
+            font-size: 9px;
+            line-height: 1.35;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        td,
+        th {
+            padding: 0;
+            margin: 0;
+        }
+
+        img {
+            display: block;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: 700;
+        }
+
+
+        /* =========================================================
+           THEME COLORS
+        ========================================================= */
+
+        /*
+            Main Navy:
+            #102A43
+
+            Secondary Navy:
+            #244D5B
+
+            Gold Accent:
+            #C9A227
+
+            Background:
+            #FFFFFF
+
+            Light Background:
+            #F7F9FB
+
+            Border:
+            #D9E0E5
+
+            Pink:
+            #F2C2D0
+        */
+
+
+        /* =========================================================
+           HEADER
+        ========================================================= */
+
+        .header {
+            width: 100%;
+            padding-bottom: 9px;
+            border-bottom: 1px solid #d9e0e5;
+        }
+
+        .logo-area {
+            vertical-align: top;
+        }
+
+        .logo-placeholder {
+            width: 125px;
+            height: 48px;
+
+            border: 1px solid #d9e0e5;
+
+            color: #777;
+            font-size: 9px;
+
+            text-align: center;
+            vertical-align: middle;
+
+            background: #ffffff;
+        }
+
+        .company-name {
+            font-size: 17px;
+            font-weight: 800;
+
+            color: #102A43;
+
+            letter-spacing: 0.5px;
+        }
+
+        .company-subtitle {
+            margin-top: 2px;
+
+            font-size: 7px;
+            font-weight: 700;
+
+            color: #C9A227;
+
+            letter-spacing: 2px;
+        }
+
+        .company-contact {
+            text-align: right;
+
+            font-size: 8px;
+            color: #555;
+
+            line-height: 1.7;
+        }
+
+        .company-contact strong {
+            color: #102A43;
+        }
+
+
+        /* =========================================================
+           CUSTOMER INFORMATION
+        ========================================================= */
+
+        .customer-info {
+            margin-top: 8px;
+            margin-bottom: 9px;
+        }
+
+        .customer-info td {
+            font-size: 9px;
+            padding: 2px 0;
+        }
+
+        .info-label {
+            color: #102A43;
+            font-weight: 700;
+
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+
+        /* =========================================================
+           TRIP TITLE
+        ========================================================= */
+
+        .trip-title-box {
+
+            border-top: 1px solid #d9e0e5;
+            border-bottom: 1px solid #d9e0e5;
+
+            padding: 7px 0;
+
+            margin-bottom: 10px;
+
+            text-align: center;
+        }
+
+        .trip-title {
+
+            font-size: 18px;
+            font-weight: 800;
+
+            color: #102A43;
+
+            letter-spacing: 1px;
+        }
+
+        .title-dot {
+
+            display: inline-block;
+
+            width: 18px;
+            height: 18px;
+
+            background: #A8D0A8;
+
+            border-radius: 50%;
+
+            vertical-align: middle;
+
+            margin: 0 7px;
+        }
+
+
+        /* =========================================================
+           DAY CARD
+        ========================================================= */
+
+        .day-card {
+
+            width: 100%;
+
+            border: 1px solid #8d8d8d;
+
+            margin-bottom: 9px;
+
+            page-break-inside: avoid;
+
+            background: #ffffff;
+        }
+
+
+        /* =========================================================
+           DAY HEADER
+        ========================================================= */
+
+        .day-header {
+
+            width: 100%;
+
+            background: #102A43;
+
+            color: #ffffff;
+
+            height: 27px;
+        }
+
+        .day-header td {
+
+            padding: 6px 9px;
+
+            font-size: 9px;
+
+            font-weight: 700;
+
+            color: #ffffff;
+        }
+
+        .day-header-left {
+            width: 43%;
+            text-align: left;
+        }
+
+        .day-header-center {
+            width: 37%;
+            text-align: center;
+        }
+
+        .day-header-right {
+            width: 20%;
+            text-align: right;
+        }
+
+
+        /* =========================================================
+           DAY BODY
+        ========================================================= */
+
+        .day-body {
+
+            width: 100%;
+
+            min-height: 110px;
+        }
+
+
+        /* IMAGE */
+
+        .image-cell {
+
+            width: 145px;
+
+            padding: 6px;
+
+            vertical-align: top;
+
+            border-right: 1px solid #d9d9d9;
+
+            background: #ffffff;
+        }
+
+        .place-image {
+
+            width: 130px;
+            height: 82px;
+
+            object-fit: cover;
+
+            border: 1px solid #d5d5d5;
+
+            padding: 3px;
+
+            background: #ffffff;
+        }
+
+        .no-image {
+
+            width: 130px;
+            height: 82px;
+
+            background: #f5f6f7;
+
+            border: 1px solid #d9d9d9;
+
+            color: #999;
+
+            text-align: center;
+
+            line-height: 82px;
+
+            font-size: 8px;
+        }
+
+
+        /* DAY INFORMATION */
+
+        .day-information {
+
+            padding: 7px 9px;
+
+            vertical-align: top;
+        }
+
+        .place-name {
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+            color: #102A43;
+
+            margin-bottom: 2px;
+        }
+
+        .place-description {
+
+            font-size: 8.5px;
+
+            color: #555;
+
+            line-height: 1.45;
+
+            margin-bottom: 5px;
+        }
+
+
+        /* =========================================================
+           ITINERARY TIMELINE
+        ========================================================= */
+
+        .timeline {
+
+            width: 100%;
+
+            margin-top: 2px;
+        }
+
+        .timeline-row td {
+
+            vertical-align: top;
+
+            padding-bottom: 4px;
+        }
+
+        .timeline-marker {
+
+            width: 13px;
+
+            text-align: center;
+
+            vertical-align: top;
+        }
+
+        .timeline-dot {
+
+            display: inline-block;
+
+            width: 6px;
+            height: 6px;
+
+            margin-top: 3px;
+
+            background: #C9A227;
+
+            border-radius: 50%;
+        }
+
+        .timeline-time {
+
+            width: 90px;
+
+            font-size: 8px;
+
+            color: #102A43;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+        .timeline-description {
+
+            font-size: 8px;
+
+            color: #555;
+
+            line-height: 1.4;
+        }
+
+
+        /* =========================================================
+           STAY NIGHT
+        ========================================================= */
+
+        .stay-row {
+
+            border-top: 1px solid #eeeeee;
+
+            margin-top: 2px;
+        }
+
+        .stay-row td {
+
+            padding-top: 5px;
+        }
+
+        .stay-icon {
+
+            width: 13px;
+
+            color: #102A43;
+
+            font-size: 9px;
+        }
+
+        .stay-text {
+
+            font-size: 8px;
+
+            font-weight: 700;
+
+            color: #102A43;
+        }
+
+
+        /* =========================================================
+           NOTICE
+        ========================================================= */
+
+        .notice {
+
+            text-align: center;
+
+            color: #333;
+
+            font-size: 8px;
+
+            font-weight: 700;
+
+            margin-top: 8px;
+
+            margin-bottom: 5px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.1px;
+        }
+
+        .notice-dot {
+
+            color: #C9A227;
+
+            font-size: 11px;
+        }
+
+
+        /* =========================================================
+           PRICING TABLE
+        ========================================================= */
+
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #1E3E4B;
+            margin-bottom: 6px;
+        }
+
+        .pricing-table thead th {
+            background: #1E3E4B;
+            color: #ffffff;
+            padding: 5px 4px;
+            font-size: 8px;
+            font-weight: 700;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #366575;
+        }
+
+        .package-subtitle {
+            display: block;
+            font-size: 6.5px;
+            font-weight: 400;
+            color: #d1dde2;
+            margin-top: 1px;
+        }
+
+        .pricing-table tbody td {
+            padding: 6px 4px;
+            font-size: 8.5px;
+            color: #1a1a1a;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #1E3E4B;
+            background: #ffffff;
+        }
+
+        .price {
+
+            font-size: 10px !important;
+
+            font-weight: 800;
+
+            color: #102A43 !important;
+        }
+
+        .price-pax {
+
+            font-size: 7px;
+
+            color: #777;
+
+            font-weight: 600;
+        }
+
+
+        /* =========================================================
+           PRICE NOTE
+        ========================================================= */
+
+        .price-note {
+
+            font-size: 7px;
+
+            color: #666;
+
+            line-height: 1.4;
+
+            margin-bottom: 7px;
+        }
+
+
+        /* =========================================================
+           SECTION HEADINGS
+        ========================================================= */
+
+        .section-title {
+
+            font-size: 15px;
+
+            font-weight: 800;
+
+            color: #102A43;
+
+            margin-top: 8px;
+
+            margin-bottom: 4px;
+        }
+
+        .section-title-line {
+
+            width: 35px;
+
+            height: 2px;
+
+            background: #C9A227;
+
+            margin-top: 2px;
+
+            margin-bottom: 5px;
+        }
+
+
+        /* =========================================================
+           CONDITION TABLE
+        ========================================================= */
+
+        .condition-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #d6d6d6;
+            margin-bottom: 8px;
+        }
+
+        .condition-header {
+            width: 50%;
+            background: #F2C2D0;
+            color: #222;
+            font-weight: 700;
+            font-size: 8.5px;
+            text-transform: uppercase;
+            padding: 5px 8px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            border: 1px solid #d6d6d6;
+        }
+
+        .condition-col {
+            width: 50%;
+            background: #ffffff;
+            color: #444;
+            font-size: 8.5px;
+            padding: 6px 8px;
+            vertical-align: top;
+            border: 1px solid #d6d6d6;
+            line-height: 1.45;
+        }
+
+        .condition-item {
+            margin-bottom: 3px;
+        }
+
+
+        /* =========================================================
+           CANCELLATION TABLE
+        ========================================================= */
+
+        .cancel-table {
+
+            width: 100%;
+
+            border: 1px solid #d6d6d6;
+        }
+
+        .cancel-table td {
+
+            padding: 5px 6px;
+
+            font-size: 8.5px;
+
+            border-bottom: 1px solid #d6d6d6;
+
+            vertical-align: top;
+        }
+
+        .cancel-table tr:last-child td {
+
+            border-bottom: none;
+        }
+
+        .cancel-label {
+
+            width: 36%;
+
+            background: #F2C2D0;
+
+            color: #222;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+        }
+
+        .cancel-value {
+
+            width: 64%;
+
+            color: #444;
+
+            background: #ffffff;
+        }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        .footer {
+
+            width: 100%;
+
+            margin-top: 12px;
+
+            padding-top: 7px;
+
+            border-top: 1px solid #d9e0e5;
+        }
+
+        .footer-company {
+
+            color: #102A43;
+
+            font-size: 9px;
+
+            font-weight: 800;
+        }
+
+        .footer-message {
+
+            color: #777;
+
+            font-size: 7.5px;
+
+            line-height: 1.5;
+
+            margin-top: 2px;
+        }
+
+        .signature {
+
+            text-align: center;
+
+            color: #333;
+
+            font-size: 8px;
+
+            font-weight: 700;
+
+            border-top: 1px solid #777;
+
+            padding-top: 4px;
+
+            width: 125px;
+
+            margin-left: auto;
+        }
+
+        .signature-label {
+
+            display: block;
+
+            font-size: 6.5px;
+
+            font-weight: 400;
+
+            color: #777;
+
+            margin-top: 1px;
+        }
+
+
+        /* =========================================================
+           PAGE BREAK CONTROL
+        ========================================================= */
+
+        .avoid-break {
+
+            page-break-inside: avoid;
         }
     </style>
+
 </head>
+
+
 <body>
 
-    <!-- Header -->
-    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
-        <tr>
-            <td width="60%">
-                <table cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="80" height="90" bgcolor="#0a1f3c" align="center" style="border-radius: 0 0 40px 0;">
-                            <div style="color: #c49a45; font-size: 36px; line-height: 1;">&#127760;</div>
-                        </td>
-                        <td style="padding-left: 20px;">
-                            <div style="font-size: 22px; font-weight: 800; color: #0a1f3c; letter-spacing: 1px;">YOUR COMPANY</div>
-                            <div style="font-size: 11px; font-weight: 600; color: #c49a45; letter-spacing: 3px; margin-top: 4px;">TRAVEL & TOURS</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            <td width="40%" align="right" valign="top" style="padding-top: 10px;">
-                <table align="right" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td align="right" style="padding-right: 15px; font-size: 10px; color: #333; line-height: 1.6; font-weight: 600;">
-                            <div><span style="font-size: 12px;">&#9742;</span> +91 98765 43210</div>
-                            <div><span style="font-size: 12px;">&#128241;</span> +91 11 1234 5678</div>
-                            <div><span style="font-size: 12px;">&#9993;</span> info@yourcompany.com</div>
-                            <div><span style="font-size: 12px;">&#127760;</span> www.yourcompany.com</div>
-                        </td>
-                        <td width="65" valign="top">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.yourcompany.com" width="65" height="65" style="border: 1px solid #e0e0e0; padding: 2px;">
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
 
-    <!-- Metadata Section -->
-    <table width="100%" style="border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 20px;" cellspacing="0" cellpadding="0">
-        <tr>
-            <td width="30%" style="padding: 12px 20px; border-right: 1px solid #e0e0e0;">
-                <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 8px;">
-                    <tr>
-                        <td width="25" style="color: #666; font-size: 14px;">&#128100;</td>
-                        <td width="40" style="font-size: 10px; color: #555; font-weight: 600;">ATTN:</td>
-                        <td style="font-size: 11px; font-weight: bold; color: #333;">{{ itinerary.contact_name|default:"Kaeran" }}</td>
-                    </tr>
-                </table>
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="25" style="color: #666; font-size: 14px;">&#9993;</td>
-                        <td width="40" style="font-size: 10px; color: #555; font-weight: 600;">TO:</td>
-                        <td style="font-size: 11px; font-weight: bold; color: #333;">{{ itinerary.customer_name|default:"QW" }}</td>
-                    </tr>
-                </table>
-            </td>
-            
-            <td width="40%" align="center" style="padding: 12px; border-right: 1px solid #e0e0e0;">
-                <div style="font-size: 18px; font-weight: 800; color: #0a1f3c; letter-spacing: 1px; margin-bottom: 8px;">TRIP ITINERARY</div>
-                <div style="font-size: 16px; font-weight: 700; color: #c49a45; letter-spacing: 2px;">
-                    <span style="color: #c49a45; font-size: 18px;">&bull;</span> {{ itinerary.event_title|default:"XCXC" }} <span style="color: #c49a45; font-size: 18px;">&bull;</span>
-                </div>
-            </td>
-            
-            <td width="30%" style="padding: 12px 20px;">
-                <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 8px;">
-                    <tr>
-                        <td width="25" style="color: #666; font-size: 14px;">&#128100;</td>
-                        <td width="45" style="font-size: 10px; color: #555; font-weight: 600;">FROM:</td>
-                        <td style="font-size: 11px; font-weight: bold; color: #333;">{{ from_user|default:"Rahul" }}</td>
-                    </tr>
-                </table>
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="25" style="color: #666; font-size: 14px;">&#128197;</td>
-                        <td width="45" style="font-size: 10px; color: #555; font-weight: 600;">DATE:</td>
-                        <td style="font-size: 11px; font-weight: bold; color: #333;">{{ current_date|default:"22 May 2026" }}</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <!-- ============================================================
+     COMPANY HEADER
+============================================================ -->
 
-    <!-- Summary Bar -->
-    <table width="100%" style="background-color: #0a1f3c; border-radius: 6px; margin-bottom: 25px;" cellspacing="0" cellpadding="0">
-        <tr>
-            <td width="33%" style="padding: 15px 20px; border-right: 1px solid rgba(255,255,255,0.15);">
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="45">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #c49a45; text-align: center; line-height: 32px; color: #c49a45; font-size: 14px;">&#128197;</div>
-                        </td>
-                        <td>
-                            <div style="font-size: 9px; color: #fff; opacity: 0.8; font-weight: 600; letter-spacing: 1px; margin-bottom: 3px;">DURATION</div>
-                            <div style="font-size: 13px; color: #fff; font-weight: bold;">05 DAYS / 04 NIGHTS</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            
-            <td width="34%" style="padding: 15px 20px; border-right: 1px solid rgba(255,255,255,0.15);">
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="45">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #c49a45; text-align: center; line-height: 32px; color: #c49a45; font-size: 14px;">&#128197;</div>
-                        </td>
-                        <td>
-                            <div style="font-size: 9px; color: #fff; opacity: 0.8; font-weight: 600; letter-spacing: 1px; margin-bottom: 3px;">DATE</div>
-                            <div style="font-size: 11px; color: #fff; font-weight: bold; line-height: 1.4;">22 May 2026<br><span style="font-size:9px; opacity: 0.8;">TO</span><br>26 May 2026</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            
-            <td width="33%" style="padding: 15px 20px;">
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="45">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #c49a45; text-align: center; line-height: 32px; color: #c49a45; font-size: 14px;">&#128205;</div>
-                        </td>
-                        <td>
-                            <div style="font-size: 9px; color: #fff; opacity: 0.8; font-weight: 600; letter-spacing: 1px; margin-bottom: 3px;">DESTINATION</div>
-                            <div style="font-size: 13px; color: #fff; font-weight: bold;">Mumbai</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <table class="header">
 
-    <!-- Days Loop -->
-    {% for day in itinerary.days.all|dictsort:"trip_day" %}
-    <table width="100%" style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; border-collapse: separate;" cellspacing="0" cellpadding="0">
         <tr>
-            <!-- Left Column -->
-            <td width="130" valign="top" style="padding: 15px; background: #fff; border-right: 1px solid #e0e0e0; border-radius: 8px 0 0 8px;">
-                <div style="background-color: #0a1f3c; color: white; padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; font-size: 11px; margin-bottom: 15px;">DAY {{ day.trip_day }}</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 8px;">
-                    <tr>
-                        <td width="20" style="color:#c49a45; font-size:14px;">&#128197;</td>
-                        <td style="font-size: 10px; color: #555;">{{ day.trip_date_formatted|default:"22 May 2026 (Fri)" }}</td>
-                    </tr>
-                </table>
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="20" style="color:#c49a45; font-size:14px;">&#128205;</td>
-                        <td style="font-size: 10px; color: #555; font-weight: bold;">Mumbai</td>
-                    </tr>
-                </table>
-            </td>
 
-            <!-- Image Column -->
-            <td width="200" valign="top" style="padding: 15px; text-align: center;">
-                {% if day.ordered_items.first.absolute_photo_path %}
-                    <img src="{{ day.ordered_items.first.absolute_photo_path }}" style="width: 180px; height: 110px; object-fit: cover; border-radius: 8px;">
+            <!-- LEFT : LOGO -->
+
+            <td width="55%" class="logo-area" valign="top">
+
+                {% if company_logo %}
+
+                <img src="{{ company_logo }}" height="45" style="display: block; margin-bottom: 4px;">
+
                 {% else %}
-                    <div style="width: 180px; height: 110px; background-color: #e0e0e0; border-radius: 8px; line-height: 110px; text-align: center; color: #999; font-size: 10px;">No Image</div>
+
+                <table style="width:125px;">
+
+                    <tr>
+
+                        <td class="logo-placeholder">
+
+                            {{ company_name|default:"[Company Logo]" }}
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
                 {% endif %}
+
+                {% if company_name %}
+                <div class="company-name" style="margin-top: 2px;">{{ company_name }}</div>
+                {% endif %}
+
             </td>
 
-            <!-- Timeline / Content Column -->
-            <td valign="top" style="padding: 15px;">
-                <div style="font-size: 13px; font-weight: bold; color: #0a1f3c; margin-bottom: 12px;">
-                    {% if day.ordered_items.first.places.all %}
-                        {{ day.ordered_items.first.places.first.place_name }}
-                    {% elif day.ordered_items.first.place %}
-                        {{ day.ordered_items.first.place.place_name }}
-                    {% else %}
-                        Gateway of India
+
+            <!-- RIGHT : CONTACT -->
+
+            <td width="45%" valign="top">
+
+                <div class="company-contact">
+
+                    {% if company_phone or company_fax %}
+                    <div>
+                        {% if company_phone %}<strong>TEL:</strong> {{ company_phone }}{% endif %}
+                        {% if company_phone and company_fax %} &nbsp;|&nbsp; {% endif %}
+                        {% if company_fax %}<strong>FAX:</strong> {{ company_fax }}{% endif %}
+                    </div>
                     {% endif %}
+
+                    {% if company_email %}
+                    <div>
+                        <strong>Email:</strong> {{ company_email }}
+                    </div>
+                    {% endif %}
+
+                    {% if company_address %}
+                    <div>
+                        <strong>Address:</strong> {{ company_address }}
+                    </div>
+                    {% endif %}
+
+                    {% if company_website %}
+                    <div>
+                        <strong>Web:</strong> {{ company_website }}
+                    </div>
+                    {% endif %}
+
                 </div>
-                
+
+            </td>
+
+        </tr>
+
+    </table>
+
+
+
+    <!-- ============================================================
+     CUSTOMER / QUOTATION INFORMATION
+============================================================ -->
+
+    <table class="customer-info">
+
+        <tr>
+
+            <td width="50%">
+
+                <span class="info-label">
+                    ATTN:
+                </span>
+
+                &nbsp;
+
+                <span class="info-value">
+
+                    {{ itinerary.contact_name|default:"-" }}
+
+                </span>
+
+            </td>
+
+
+            <td width="50%" class="text-right">
+
+                <span class="info-label">
+                    FROM:
+                </span>
+
+                &nbsp;
+
+                <span class="info-value">
+
+                    {{ from_user|default:"-" }}
+
+                </span>
+
+            </td>
+
+        </tr>
+
+
+        <tr>
+
+            <td>
+
+                <span class="info-label">
+                    TO:
+                </span>
+
+                &nbsp;
+
+                <span class="info-value">
+
+                    {{ itinerary.customer_name|default:"-" }}
+
+                </span>
+
+            </td>
+
+
+            <td class="text-right">
+
+                <span class="info-label">
+                    DATE:
+                </span>
+
+                &nbsp;
+
+                <span class="info-value">
+
+                    {{ current_date }}
+
+                </span>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+
+
+    <!-- ============================================================
+     TRIP TITLE
+============================================================ -->
+
+    <!-- =========================================================
+     TRIP TITLE + DURATION + DATE
+========================================================= -->
+
+    <table width="100%" cellspacing="0" cellpadding="0" style="
+           background:#102A43;
+           margin-bottom:12px;
+           border-collapse:collapse;
+       ">
+
+        <tr>
+
+            <!-- =================================================
+             LEFT : DURATION
+        ================================================== -->
+
+            <td width="28%" valign="middle" style="
+                padding:13px 15px;
+                border-right:1px solid rgba(255,255,255,0.35);
+            ">
+
                 <table width="100%" cellspacing="0" cellpadding="0">
-                    {% for item in day.ordered_items %}
+
                     <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                            {% if not forloop.last %}
-                            <div style="width: 1px; height: calc(100% - 6px); background-color: #e67e22; margin-top: 2px;"></div>
+
+                        <td width="38" valign="middle">
+
+                            <div style="
+                            width:30px;
+                            height:30px;
+                            border:2px solid #C9A227;
+                            color:#C9A227;
+                            text-align:center;
+                            line-height:27px;
+                            font-size:15px;
+                        ">
+
+                                &#128197;
+
+                            </div>
+
+                        </td>
+
+                        <td valign="middle">
+
+                            <div style="
+                            font-size:8px;
+                            color:#ffffff;
+                            opacity:0.75;
+                            font-weight:700;
+                            letter-spacing:1.2px;
+                            margin-bottom:3px;
+                        ">
+
+                                DURATION
+
+                            </div>
+
+
+                            <div style="
+                            font-size:12px;
+                            color:#ffffff;
+                            font-weight:800;
+                            line-height:1.35;
+                        ">
+
+                                {{ duration_str }}
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+            </td>
+
+
+            <!-- =================================================
+             CENTER : TRIP TITLE
+        ================================================== -->
+
+            <td width="44%" valign="middle" align="center" style="
+                padding:12px 10px;
+            ">
+
+
+
+
+                <div style="
+                font-size:17px;
+                font-weight:800;
+                color:#ffffff;
+                letter-spacing:1.5px;
+                line-height:1.2;
+            ">
+
+                    <span style="
+                    color:#C9A227;
+                    font-size:17px;
+                ">
+                        &bull;
+                    </span>
+
+                    &nbsp;
+
+                    {{ itinerary.event_title|default:itinerary.customer_name|default:"TOUR ITINERARY" }}
+
+                    &nbsp;
+
+                    <span style="
+                    color:#C9A227;
+                    font-size:17px;
+                ">
+                        &bull;
+                    </span>
+
+                </div>
+
+            </td>
+
+
+            <!-- =================================================
+             RIGHT : DATE
+        ================================================== -->
+
+            <td width="28%" valign="middle" style="
+                padding:13px 15px;
+                border-left:1px solid rgba(255,255,255,0.35);
+            ">
+
+                <table width="100%" cellspacing="0" cellpadding="0">
+
+                    <tr>
+
+                        <td width="38" valign="middle">
+
+                            <div style="
+                            width:30px;
+                            height:30px;
+                            border:2px solid #C9A227;
+                            color:#C9A227;
+                            text-align:center;
+                            line-height:27px;
+                            font-size:15px;
+                        ">
+
+                                &#128197;
+
+                            </div>
+
+                        </td>
+
+
+                        <td valign="middle">
+
+                            <div style="
+                            font-size:8px;
+                            color:#ffffff;
+                            opacity:0.75;
+                            font-weight:700;
+                            letter-spacing:1.2px;
+                            margin-bottom:2px;
+                        ">
+
+                                DATE
+
+                            </div>
+
+
+                            <div style="
+                            font-size:10px;
+                            color:#ffffff;
+                            font-weight:800;
+                            line-height:1.3;
+                        ">
+
+                                {{ start_date_str }}
+
+                            </div>
+
+
+                            <div style="
+                            font-size:7px;
+                            color:#ffffff;
+                            opacity:0.65;
+                            font-weight:600;
+                            margin:1px 0;
+                        ">
+
+                                TO
+
+                            </div>
+
+
+                            <div style="
+                            font-size:10px;
+                            color:#ffffff;
+                            font-weight:800;
+                            line-height:1.3;
+                        ">
+
+                                {{ end_date_str }}
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+
+
+    <!-- ============================================================
+     ITINERARY DAYS
+============================================================ -->
+
+    {% for day in days_data %}
+
+
+    <div class="day-card">
+
+
+        <!-- --------------------------------------------------------
+         DAY HEADER
+    --------------------------------------------------------- -->
+
+        <table class="day-header">
+
+            <tr>
+
+                <td class="day-header-left">
+
+                    DAY {{ day.trip_day }}
+
+                    {% if day.trip_date_formatted %}
+
+                    : {{ day.trip_date_formatted }}
+
+                    {% endif %}
+
+                </td>
+
+
+                <td class="day-header-center">
+
+                    {{ day.city.name|default:destinations_str }}
+
+                </td>
+
+
+                <td class="day-header-right">
+
+                    {{ day.meal_display }}
+
+                </td>
+
+            </tr>
+
+        </table>
+
+
+
+        <!-- --------------------------------------------------------
+         DAY BODY
+    --------------------------------------------------------- -->
+
+        {% if day.places_details_list and day.places_details_list|length > 1 %}
+
+            {% if day.custom_description %}
+            <div style="padding: 6px 9px 4px 9px; font-size: 8.5px; color: #444; background: #fbfbfb; border-bottom: 1px solid #eeeeee; line-height: 1.4;">
+                {{ day.custom_description }}
+            </div>
+            {% endif %}
+
+            <table class="day-body">
+                {% for pd in day.places_details_list %}
+                    {% if not forloop.first %}
+                    <tr>
+                        <td colspan="2" style="border-top: 1px solid #d9d9d9; padding: 0; height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                    </tr>
+                    {% endif %}
+
+                    <tr>
+                        <!-- IMAGE -->
+                        <td class="image-cell">
+                            {% if pd.photo_path %}
+                            <img src="{{ pd.photo_path }}" class="place-image">
+                            {% else %}
+                            <div class="no-image">
+                                {{ pd.name }}
+                            </div>
                             {% endif %}
                         </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase;">
-                                {% if item.start_time %}
-                                    {% if item.start_time.hour < 12 %}MORNING
-                                    {% elif item.start_time.hour < 17 %}AFTERNOON
-                                    {% else %}EVENING
-                                    {% endif %}
-                                {% else %}
-                                    ACTIVITY
-                                {% endif %}
-                            </div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">
-                                ( {% if item.start_time %}{{ item.start_time|time:"H.i" }}{% else %}09.00{% endif %} - {% if item.end_time %}{{ item.end_time|time:"H.i" }}{% else %}13.00{% endif %} )
-                            </div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">
-                                {{ item.description|default:"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus, eu rutrum quam lacinia." }}
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                            <div style="width: 1px; height: 35px; background-color: #e67e22; margin-top: 2px;"></div>
-                        </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333;">MORNING</div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">( 09.00 - 13.00 )</div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus.</div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                        </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333;">AFTERNOON</div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">( 14.00 - 18.00 )</div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus.</div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="color: #e67e22; font-size: 14px; margin-top: -3px;">&#128716;</div>
-                        </td>
-                        <td colspan="2" valign="top" style="padding-left: 8px;">
-                            <div style="font-size: 10px; font-weight: bold; color: #0a1f3c;">Stay Night</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-    {% empty %}
-    <!-- Default Mock Data to match image exactly when no real data -->
-    <table width="100%" style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; border-collapse: separate;" cellspacing="0" cellpadding="0">
-        <!-- ... same structure as above ... -->
-        <tr>
-            <td width="130" valign="top" style="padding: 15px; background: #fff; border-right: 1px solid #e0e0e0; border-radius: 8px 0 0 8px;">
-                <div style="background-color: #0a1f3c; color: white; padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; font-size: 11px; margin-bottom: 15px;">DAY 1</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 8px;">
-                    <tr><td width="20" style="color:#c49a45; font-size:14px;">&#128197;</td><td style="font-size: 10px; color: #555;">22 May 2026 (Fri)</td></tr>
-                </table>
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr><td width="20" style="color:#c49a45; font-size:14px;">&#128205;</td><td style="font-size: 10px; color: #555; font-weight: bold;">Mumbai</td></tr>
-                </table>
-            </td>
-            <td width="200" valign="top" style="padding: 15px; text-align: center;">
-                <div style="width: 180px; height: 110px; background-color: #e0e0e0; border-radius: 8px; line-height: 110px; text-align: center; color: #999; font-size: 10px;">Gateway of India Image</div>
-            </td>
-            <td valign="top" style="padding: 15px;">
-                <div style="font-size: 13px; font-weight: bold; color: #0a1f3c; margin-bottom: 12px;">Gateway of India</div>
-                <table width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                            <div style="width: 1px; height: 35px; background-color: #e67e22; margin-top: 2px;"></div>
-                        </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333;">MORNING</div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">( 09.00 - 13.00 )</div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus.</div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                            <div style="width: 1px; height: 35px; background-color: #e67e22; margin-top: 2px;"></div>
-                        </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333;">AFTERNOON</div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">( 14.00 - 18.00 )</div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus.</div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="width: 6px; height: 6px; background-color: #e67e22; border-radius: 50%; margin-top: 4px;"></div>
-                        </td>
-                        <td width="90" valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; font-weight: bold; color: #333;">EVENING</div>
-                            <div style="font-size: 9px; font-weight: bold; color: #0a1f3c; margin-top: 2px;">( 19.00 - 21.00 )</div>
-                        </td>
-                        <td valign="top" style="padding-bottom: 12px; padding-left: 8px;">
-                            <div style="font-size: 9px; color: #555; line-height: 1.4;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus bibendum erat eu augue maximus.</div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="15" valign="top" align="center">
-                            <div style="color: #e67e22; font-size: 14px; margin-top: -3px;">&#128716;</div>
-                        </td>
-                        <td colspan="2" valign="top" style="padding-left: 8px;">
-                            <div style="font-size: 10px; font-weight: bold; color: #0a1f3c;">Stay Night</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-    {% endfor %}
 
-    <!-- Pricing Warning -->
-    <div style="text-align: center; font-weight: bold; font-size: 10px; color: #333; margin: 25px 0 10px 0;">
-        <span style="color:#c49a45;">&bull;</span> MENU & ITINERARY ARE SUBJECT TO CHANGE. PLEASE NOTE: <span style="color:#c49a45;">&bull;</span>
+                        <!-- DETAILS -->
+                        <td class="day-information">
+                            <div class="place-name">{{ pd.name }}</div>
+                            <div class="place-description">
+                                {{ pd.description|default:"Sightseeing and exploration." }}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <!-- TIMELINE & STAY FOR MULTI-PLACE DAY -->
+                {% if day.ordered_items or day.stay_display %}
+                <tr>
+                    <td colspan="2" style="border-top: 1px solid #e0e0e0; padding: 6px 9px; background: #ffffff;">
+                        <table class="timeline">
+                            {% for item in day.ordered_items %}
+                            <tr class="timeline-row">
+                                <td style="width: 12px; vertical-align: top; color: #C9A227; font-size: 9px; line-height: 1.2;">&#9679;</td>
+
+                                {% if item.start_time %}
+                                <td style="width: 75px; vertical-align: top; font-size: 8px; font-weight: 700; color: #102A43;">
+                                    {{ item.start_time|time:"H.i" }}{% if item.end_time %} - {{ item.end_time|time:"H.i" }}{% endif %}
+                                </td>
+                                {% elif item.item_type == 'Transport' and item.departure_time %}
+                                <td style="width: 75px; vertical-align: top; font-size: 8px; font-weight: 700; color: #102A43;">
+                                    {{ item.departure_time|time:"H.i" }}{% if item.arrival_time %} - {{ item.arrival_time|time:"H.i" }}{% endif %}
+                                </td>
+                                {% endif %}
+
+                                <td class="timeline-description">
+                                    {% if item.item_type == 'Transport' %}
+                                    <strong>{{ item.transport_mode|default:"Transfer" }}</strong>{% if item.from_city and item.to_city %}: {{ item.from_city.name }} to {{ item.to_city.name }}{% endif %}{% if item.duration %} ({{ item.duration }}){% endif %}{% if item.resolved_description %} - {{ item.resolved_description }}{% endif %}
+                                    {% else %}
+                                    {% if item.places_display %}
+                                    <strong>{{ item.places_display }}</strong>{% if item.resolved_description %}: {{ item.resolved_description }}{% endif %}
+                                    {% elif item.place %}
+                                    <strong>{{ item.place.place_name }}</strong>{% if item.resolved_description %}: {{ item.resolved_description }}{% endif %}
+                                    {% elif item.resolved_description and item.resolved_description != day.resolved_description %}
+                                    {{ item.resolved_description }}
+                                    {% elif item.description %}
+                                    {{ item.description }}
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            {% endfor %}
+
+                            <!-- STAY -->
+                            <tr class="stay-row">
+                                <td style="width: 12px; vertical-align: middle; color: #102A43; font-size: 9px;">&#127968;</td>
+                                <td colspan="2">
+                                    <span class="stay-text">
+                                        {{ day.stay_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+
+        {% else %}
+
+            <!-- SINGLE PLACE OR DEFAULT DAY BODY -->
+            <table class="day-body">
+                <tr>
+                    <!-- IMAGE -->
+                    <td class="image-cell">
+                        {% if day.absolute_photo_path %}
+                        <img src="{{ day.absolute_photo_path }}" class="place-image">
+                        {% else %}
+                        <div class="no-image">
+                            {{ day.resolved_place.place_name|default:day.city.name|default:"Tour Destination" }}
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- DETAILS -->
+                    <td class="day-information">
+                        <!-- PLACE NAME -->
+                        <div class="place-name">
+                            {% if day.resolved_place_names %}
+                            {{ day.resolved_place_names }}
+                            {% elif day.resolved_place %}
+                            {{ day.resolved_place.place_name }}
+                            {% elif day.city %}
+                            {{ day.city.name }}
+                            {% else %}
+                            Day {{ day.trip_day }} Schedule
+                            {% endif %}
+                        </div>
+
+                        <!-- DESCRIPTION -->
+                        {% if day.custom_description %}
+                        <div class="place-description" style="margin-bottom: 5px;">
+                            {{ day.custom_description }}
+                        </div>
+                        {% endif %}
+
+                        {% if day.places_details_list and day.places_details_list|length == 1 %}
+                            {% for pd in day.places_details_list %}
+                                {% if pd.description %}
+                                <div class="place-description" style="margin-bottom: 4px;">
+                                    {{ pd.description }}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% elif day.resolved_description %}
+                        <div class="place-description">
+                            {{ day.resolved_description }}
+                        </div>
+                        {% endif %}
+
+                        <!-- TIMELINE -->
+                        <table class="timeline">
+                            {% for item in day.ordered_items %}
+                            <tr class="timeline-row">
+                                <!-- DOT -->
+                                <td class="timeline-marker">
+                                    <span class="timeline-dot"></span>
+                                </td>
+
+                                <!-- TIME -->
+                                <td class="timeline-time">
+                                    {% if item.start_time %}
+                                    {{ item.start_time|time:"H.i" }}{% if item.end_time %} - {{ item.end_time|time:"H.i" }}{% endif %}
+                                    {% elif item.item_type == 'Transport' and item.departure_time %}
+                                    {{ item.departure_time|time:"H.i" }}{% if item.arrival_time %} - {{ item.arrival_time|time:"H.i" }}{% endif %}
+                                    {% endif %}
+                                </td>
+
+                                <!-- DESCRIPTION -->
+                                <td class="timeline-description">
+                                    {% if item.item_type == 'Transport' %}
+                                    <strong>{{ item.transport_mode|default:"Transfer" }}</strong>{% if item.from_city and item.to_city %}: {{ item.from_city.name }} to {{ item.to_city.name }}{% endif %}{% if item.duration %} ({{ item.duration }}){% endif %}{% if item.resolved_description %} - {{ item.resolved_description }}{% endif %}
+                                    {% else %}
+                                    {% if item.places_display %}
+                                    <strong>{{ item.places_display }}</strong>{% if item.resolved_description %}: {{ item.resolved_description }}{% endif %}
+                                    {% elif item.place %}
+                                    <strong>{{ item.place.place_name }}</strong>{% if item.resolved_description %}: {{ item.resolved_description }}{% endif %}
+                                    {% elif item.resolved_description and item.resolved_description != day.resolved_description %}
+                                    {{ item.resolved_description }}
+                                    {% elif item.description %}
+                                    {{ item.description }}
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            {% endfor %}
+
+                            <!-- STAY -->
+                            <tr class="stay-row">
+                                <td class="stay-icon">
+                                    &#127968;
+                                </td>
+                                <td colspan="2">
+                                    <span class="stay-text">
+                                        {{ day.stay_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+            </table>
+
+        {% endif %}
+
+
     </div>
 
-    <!-- Pricing Table -->
-    <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: 1px solid #0a1f3c; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+
+    {% empty %}
+
+
+    <div
+        style="padding: 16px; text-align: center; color: #627D98; font-size: 10px; border: 1px dashed #CBD2D9; border-radius: 4px; margin-bottom: 12px; background: #F8FAFC;">
+        Day-by-day itinerary schedule will be finalized based on your travel dates and preferences.
+    </div>
+
+
+    {% endfor %}
+
+
+
+    <!-- ============================================================
+     NOTICE
+============================================================ -->
+
+    <div
+        style="text-align: center; font-weight: bold; font-size: 8.5px; margin: 10px 0 6px 0; color: #102A43; letter-spacing: 0.3px;">
+        MENU &amp; ITINERARY ARE SUBJECT TO CHANGE. PLEASE NOTE:
+    </div>
+
+    <table class="pricing-table">
         <thead>
-            <tr style="background-color: #0a1f3c; color: white;">
-                <th style="padding: 10px; font-size: 10px; border-right: 1px solid rgba(255,255,255,0.2); width: 25%;">CITY</th>
-                <th style="padding: 10px; font-size: 10px; border-right: 1px solid rgba(255,255,255,0.2); width: 25%;">HOTEL NAME</th>
-                <th style="padding: 10px; font-size: 10px; border-right: 1px solid rgba(255,255,255,0.2); width: 35%;">COMPLETE PACKAGE PER PERSON<br><span style="font-size: 8px; font-weight: normal;">(Hotel + Travel + Meals)</span></th>
-                <th style="padding: 10px; font-size: 10px; color: #c49a45; width: 15%;">15 PAX</th>
+            <tr>
+                <th rowspan="2" style="width: 25%; vertical-align: middle;">
+                    CITY
+                </th>
+                <th rowspan="2" style="width: 35%; vertical-align: middle;">
+                    HOTEL NAME
+                </th>
+                <th colspan="{{ pax_sizes|length }}">
+                    COMPLETE PACKAGE PER PERSON
+                    <span class="package-subtitle">
+                        (Hotel + Travel + Meals)
+                    </span>
+                </th>
+            </tr>
+            <tr>
+                {% for pax in pax_sizes %}
+                <th style="padding: 4px 2px;">
+                    {{ pax }} PAX
+                </th>
+                {% endfor %}
             </tr>
         </thead>
         <tbody>
-            {% if itinerary.group_prices.all %}
-            {% for price in itinerary.group_prices.all %}
+            {% for row in pricing_rows %}
             <tr>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc; font-weight: bold; border-bottom: 1px solid #ccc;">{{ price.hotel.city.name|upper|default:itinerary.hotel.city.name|upper|default:"MUMBAI" }}</td>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc; font-weight: bold; border-bottom: 1px solid #ccc;">{{ price.hotel.name|upper|default:itinerary.hotel.name|upper|default:"FHFJHG" }}</td>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc; border-bottom: 1px solid #ccc;"></td>
-                <td align="center" style="padding: 10px; font-size: 11px; font-weight: bold; border-bottom: 1px solid #ccc;">&#8377;{{ price.total_price_per_person }}</td>
+                <td class="bold">
+                    {{ row.city }}
+                </td>
+                <td class="bold">
+                    {{ row.hotel_name }}
+                </td>
+                {% for price in row.prices %}
+                <td class="bold" style="color: #102A43;">
+                    ₹{{ price }}
+                </td>
+                {% endfor %}
             </tr>
             {% endfor %}
-            {% else %}
-            <tr>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc; font-weight: bold;">MUMBAI</td>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc; font-weight: bold;">FHFJHG</td>
-                <td align="center" style="padding: 10px; font-size: 11px; border-right: 1px solid #ccc;"></td>
-                <td align="center" style="padding: 10px; font-size: 11px; font-weight: bold;">&#8377;120.00</td>
-            </tr>
-            {% endif %}
         </tbody>
     </table>
 
-    <div style="font-size: 9px; color: #555; margin-bottom: 2px;">* All prices are per person and include hotel accommodation, transportation, and meals</div>
-    <div style="font-size: 9px; color: #555;">* For group sizes: 15 PAX</div>
 
-    <!-- 3 Columns Footer Boxes -->
-    <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 25px;">
+
+    <!-- ============================================================
+     PRICE NOTE
+============================================================ -->
+
+    <div class="price-note">
+
+        * All prices are per person and include hotel accommodation,
+        transportation, and meals.
+
+        {% if group_prices %}
+
+        <br>
+
+        * Group sizes:
+
+        {% for price in group_prices %}
+
+        {{ price.group_size }} PAX
+
+        {% if not forloop.last %}
+
+        ,
+
+        {% endif %}
+
+        {% endfor %}
+
+        {% endif %}
+
+    </div>
+
+
+
+    <!-- ============================================================
+     CONDITION
+============================================================ -->
+
+    <div class="section-title">
+
+        Condition
+
+    </div>
+
+    <div class="section-title-line"></div>
+
+
+    <table class="condition-table">
         <tr>
-            <td width="32%" valign="top">
-                <table width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e0e0e0; border-radius: 6px;">
-                    <tr>
-                        <td style="padding: 15px;">
-                            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
-                                <tr>
-                                    <td width="30">
-                                        <div style="width: 22px; height: 22px; background-color: #27ae60; color: white; border-radius: 50%; text-align: center; line-height: 22px; font-size: 11px;">&#128077;</div>
-                                    </td>
-                                    <td style="font-size: 12px; font-weight: 800; color: #27ae60;">INCLUSIONS</td>
-                                </tr>
-                            </table>
-                            <table width="100%" cellspacing="0" cellpadding="0">
-                                {% for inc in itinerary.inclusions.all %}
-                                <tr>
-                                    <td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 6px;">&#10004;</td>
-                                    <td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 6px;">{{ inc.title }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Hotel Accommodation</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Daily Breakfast, Lunch & Dinner</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Transportation as per itinerary</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Airport Transfers</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Sightseeing as per itinerary</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Toll, Parking, Fuel Charges</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Driver Allowance</td></tr>
-                                <tr><td width="20" valign="top" style="color: #27ae60; font-size: 12px; padding-bottom: 4px;">&#10004;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">All Applicable Taxes</td></tr>
-                                {% endfor %}
-                            </table>
-                        </td>
-                    </tr>
-                </table>
+            <th class="condition-header">
+                INCLUSION
+            </th>
+            <th class="condition-header">
+                EXCLUSION
+            </th>
+        </tr>
+        <tr>
+            <td class="condition-col" valign="top">
+                {% for inc in inclusions %}
+                <div class="condition-item">
+                    &bull; <strong>{{ inc.title }}</strong>{% if inc.description %}: {{ inc.description }}{% endif %}
+                </div>
+                {% empty %}
+                <div class="condition-item">&bull; Hotel accommodation as per confirmed package</div>
+                <div class="condition-item">&bull; Daily breakfast, lunch &amp; dinner as specified</div>
+                <div class="condition-item">&bull; Transportation and activities as per itinerary</div>
+                <div class="condition-item">&bull; All applicable taxes and service charges</div>
+                {% endfor %}
             </td>
-            
-            <td width="2%"></td>
-            
-            <td width="32%" valign="top">
-                <table width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fff9f9;">
-                    <tr>
-                        <td style="padding: 15px;">
-                            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
-                                <tr>
-                                    <td width="30">
-                                        <div style="width: 22px; height: 22px; background-color: #e74c3c; color: white; border-radius: 50%; text-align: center; line-height: 22px; font-size: 11px;">&#128078;</div>
-                                    </td>
-                                    <td style="font-size: 12px; font-weight: 800; color: #e74c3c;">EXCLUSIONS</td>
-                                </tr>
-                            </table>
-                            <table width="100%" cellspacing="0" cellpadding="0">
-                                {% for exc in itinerary.exclusions.all %}
-                                <tr>
-                                    <td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 6px;">&#10006;</td>
-                                    <td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 6px;">{{ exc.title }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Airfare / Train Fare</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Personal Expenses</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Early Check-in / Late Check-out</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Any Adventure Activities</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Guide Charges (Optional)</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Any Entry Tickets</td></tr>
-                                <tr><td width="20" valign="top" style="color: #e74c3c; font-size: 12px; padding-bottom: 4px;">&#10006;</td><td valign="top" style="font-size: 10px; font-weight: bold; color: #333; padding-bottom: 4px;">Anything not mentioned in inclusions</td></tr>
-                                {% endfor %}
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            
-            <td width="2%"></td>
-            
-            <td width="32%" valign="top">
-                <table width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #f39c12; border-radius: 6px; background-color: #fffdf5; height: 100%;">
-                    <tr>
-                        <td style="padding: 15px;" valign="top">
-                            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
-                                <tr>
-                                    <td width="30">
-                                        <div style="width: 22px; height: 22px; background-color: #f39c12; color: white; border-radius: 50%; text-align: center; line-height: 22px; font-size: 11px;">&#128737;</div>
-                                    </td>
-                                    <td style="font-size: 12px; font-weight: 800; color: #f39c12;">CANCELLATION POLICY</td>
-                                </tr>
-                            </table>
-                            <div style="font-size: 11px; font-weight: bold; color: #333; border-bottom: 1px solid #e0e0e0; padding-bottom: 6px; margin-bottom: 8px;">NOTE</div>
-                            <div style="font-size: 10px; color: #555; line-height: 1.5;">
-                                {% for policy in itinerary.policies.all %}
-                                    {{ policy.title }}: {{ policy.description }}<br>
-                                {% empty %}
-                                    jghjg
-                                {% endfor %}
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+            <td class="condition-col" valign="top">
+                {% for exc in exclusions %}
+                <div class="condition-item">
+                    &bull; <strong>{{ exc.title }}</strong>{% if exc.description %}: {{ exc.description }}{% endif %}
+                </div>
+                {% empty %}
+                <div class="condition-item">&bull; Airfare / train fare unless specifically included</div>
+                <div class="condition-item">&bull; Personal expenses (laundry, room service, telephone calls)</div>
+                <div class="condition-item">&bull; Monument entry tickets and camera fees</div>
+                <div class="condition-item">&bull; Anything not explicitly mentioned in inclusions</div>
+                {% endfor %}
             </td>
         </tr>
     </table>
 
-    <!-- Footer -->
-    <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 35px; margin-bottom: 20px;">
+
+
+    <!-- ============================================================
+     CANCELLATION POLICY
+============================================================ -->
+
+    <div class="section-title">
+
+        Cancellation Policy
+
+    </div>
+
+    <div class="section-title-line"></div>
+
+
+    <table class="cancel-table">
+
+
+        {% for policy in policies %}
+
+
         <tr>
-            <td width="30%" valign="middle">
-                <div style="font-family: 'Brush Script MT', 'Lucida Handwriting', cursive, serif; font-size: 32px; color: #c49a45; font-style: italic;">Thank You!</div>
+
+
+            <td class="cancel-label">
+
+                {{ policy.title|default:"POLICY" }}
+
             </td>
-            <td width="45%" valign="middle" style="font-size: 9.5px; color: #0a1f3c; line-height: 1.5;">
-                Thank you for giving us the opportunity<br>
-                to serve you. We look forward to<br>
-                making your trip a memorable one!
+
+
+            <td class="cancel-value">
+
+                {{ policy.description|default:policy.title }}
+
             </td>
-            <td width="25%" align="center" valign="bottom">
-                <div style="font-family: 'Brush Script MT', 'Lucida Handwriting', cursive, serif; font-size: 24px; color: #333; margin-bottom: 5px; height: 40px; line-height: 40px;">Frachfer</div>
-                <div style="font-size: 10px; font-weight: bold; color: #333; border-top: 1px solid #000; padding-top: 5px; display: inline-block; width: 80%;">Authorised Signatory</div>
-            </td>
+
+
         </tr>
+
+
+        {% empty %}
+
+
+        <tr>
+
+
+            <td class="cancel-label">
+
+                NOTE
+
+            </td>
+
+
+            <td class="cancel-value">
+
+                Standard cancellation and refund policy applies. Please contact our tour consultant for detailed terms.
+
+            </td>
+
+
+        </tr>
+
+
+        {% endfor %}
+
+
     </table>
+
+
+    {% if important_notes %}
+    <!-- ============================================================
+     IMPORTANT NOTES
+============================================================ -->
+
+    <div class="section-title">
+
+        Important Notes
+
+    </div>
+
+    <div class="section-title-line"></div>
+
+
+    <table class="cancel-table">
+
+
+        {% for note in important_notes %}
+
+
+        <tr>
+
+
+            <td class="cancel-label">
+
+                {{ note.title|default:"NOTE" }}
+
+            </td>
+
+
+            <td class="cancel-value">
+
+                {{ note.description|default:note.title }}
+
+            </td>
+
+
+        </tr>
+
+
+        {% endfor %}
+
+
+    </table>
+    {% endif %}
+
+
+
+    <!-- ============================================================
+     FOOTER
+============================================================ -->
+
+    <table class="footer">
+
+
+        <tr>
+
+
+            <!-- FOOTER MESSAGE -->
+
+            <td width="65%" valign="top">
+
+
+                <div class="footer-company">
+
+                    {{ company_name }}
+
+                </div>
+
+
+                <div class="footer-message">
+
+                    Thank you for giving us the opportunity to serve you.
+
+                    <br>
+
+                    We look forward to making your trip a memorable one.
+
+                </div>
+
+
+            </td>
+
+
+            <!-- SIGNATURE -->
+
+            <td width="35%" valign="bottom">
+
+
+                <div class="signature">
+
+                    {{ from_user }}
+
+                    <span class="signature-label">
+
+                        Authorised Signatory
+
+                    </span>
+
+                </div>
+
+            </td>
+
+
+        </tr>
+
+
+    </table>
+
 
 </body>
+
 </html>

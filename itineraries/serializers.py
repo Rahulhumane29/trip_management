@@ -18,6 +18,7 @@ class ItineraryItemSerializer(serializers.ModelSerializer):
 
 class ItineraryDaySerializer(serializers.ModelSerializer):
     place_details = PlaceSerializer(source='place', read_only=True)
+    places_details = PlaceSerializer(source='places', many=True, read_only=True)
     city_details = CitySerializer(source='city', read_only=True)
     items = ItineraryItemSerializer(many=True, read_only=True)
 
@@ -55,7 +56,6 @@ class TripInventorySerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField()
     cities = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
     trip_title = serializers.CharField(source='event_title')
     start_date = serializers.DateField(source='trip_start_date')
     end_date = serializers.DateField(source='trip_end_date')
@@ -66,7 +66,7 @@ class TripInventorySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'customer_name', 'contact_number', 'trip_title',
             'start_date', 'end_date', 'duration', 'cities',
-            'total_amount', 'created_at', 'status'
+            'total_amount', 'created_at'
         ]
 
     def get_duration(self, obj):
@@ -89,6 +89,3 @@ class TripInventorySerializer(serializers.ModelSerializer):
         if first_group:
             return first_group.total_group_price
         return 0.00
-
-    def get_status(self, obj):
-        return "Confirmed"

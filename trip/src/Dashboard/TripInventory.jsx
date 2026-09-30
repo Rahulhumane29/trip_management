@@ -3,7 +3,6 @@ import Toast from '../components/Toast';
 
 export default function TripInventory({ setActiveTab, setEditTripId }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,7 +68,21 @@ export default function TripInventory({ setActiveTab, setEditTripId }) {
   };
 
   const handlePDF = (id) => {
-    window.open(`/api/itinerary/${id}/pdf/`, '_blank');
+    const token = localStorage.getItem('access_token');
+    const userInfoStr = localStorage.getItem('user_info');
+    let userName = '';
+    if (userInfoStr) {
+      try {
+        const u = JSON.parse(userInfoStr);
+        userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.username || '');
+      } catch (e) {}
+    }
+    const params = new URLSearchParams();
+    if (token) params.append('token', token);
+    if (userName) params.append('user_name', userName);
+    const queryString = params.toString();
+    const url = queryString ? `/api/itinerary/${id}/pdf/?${queryString}` : `/api/itinerary/${id}/pdf/`;
+    window.open(url, '_blank');
   };
 
   const filteredTrips = trips.filter(trip => {
@@ -80,23 +93,21 @@ export default function TripInventory({ setActiveTab, setEditTripId }) {
       trip.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (trip.cities && trip.cities.join(' ').toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesStatus = statusFilter === 'All' || trip.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden font-sans">
       {toast && <Toast show={true} message={toast.message} type={toast.type} />}
       
-      <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Trip Inventory</h2>
-          <p className="text-xs text-slate-500 mt-1">Manage all your trips</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-800">Trip Inventory</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Manage all your trips</p>
         </div>
         <button 
           onClick={() => setActiveTab && setActiveTab('TripManage')}
-          className="px-4 py-2 bg-[#ff6a00] hover:bg-[#e65c00] text-white text-sm font-semibold rounded-xl shadow-md transition-all flex items-center gap-2">
+          className="w-full sm:w-auto px-4 py-2 bg-[#ff6a00] hover:bg-[#e65c00] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -117,15 +128,6 @@ export default function TripInventory({ setActiveTab, setEditTripId }) {
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
-        <select 
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none"
-        >
-          <option value="All">All Status</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="Pending">Pending</option>
-        </select>
       </div>
 
       <div className="overflow-x-auto">
@@ -139,17 +141,16 @@ export default function TripInventory({ setActiveTab, setEditTripId }) {
               <th className="p-4 max-w-[200px]">Cities</th>
               <th className="p-4 text-right">Amount</th>
               <th className="p-4">Created</th>
-              <th className="p-4 text-center">Status</th>
               <th className="p-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="text-sm divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan="9" className="p-8 text-center text-slate-500">Loading trips...</td></tr>
+              <tr><td colSpan="8" className="p-8 text-center text-slate-500">Loading trips...</td></tr>
             ) : error ? (
-              <tr><td colSpan="9" className="p-8 text-center text-red-500">{error}</td></tr>
+              <tr><td colSpan="8" className="p-8 text-center text-red-500">{error}</td></tr>
             ) : filteredTrips.length === 0 ? (
-              <tr><td colSpan="9" className="p-8 text-center text-slate-500">No trips found</td></tr>
+              <tr><td colSpan="8" className="p-8 text-center text-slate-500">No trips found</td></tr>
             ) : (
               filteredTrips.map(trip => (
                 <tr key={trip.id} className="hover:bg-slate-50/50 transition-colors">
@@ -173,11 +174,6 @@ export default function TripInventory({ setActiveTab, setEditTripId }) {
                   </td>
                   <td className="p-4 text-xs text-slate-500">
                     {new Date(trip.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-full">
-                      {trip.status}
-                    </span>
                   </td>
                   <td className="p-4 text-center">
                     <div className="flex justify-center gap-2">

@@ -88,6 +88,7 @@ class ItineraryDay(models.Model):
     itinerary = models.ForeignKey(Itinerary, related_name='days', on_delete=models.CASCADE)
     city = models.ForeignKey('places.City', on_delete=models.PROTECT, null=True, blank=True)
     place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='itinerary_days', null=True, blank=True)
+    places = models.ManyToManyField(Place, blank=True, related_name='itinerary_days_multi')
     meal_plan = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     trip_day = models.IntegerField()  # e.g. 1, 2, 3
@@ -124,6 +125,13 @@ class ItineraryDay(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
+        if self.pk:
+            try:
+                if self.places.exists():
+                    names = ", ".join(p.place_name for p in self.places.all()[:3])
+                    return f"Day {self.trip_day}: {names} ({self.city})"
+            except Exception:
+                pass
         if self.place:
             return f"Day {self.trip_day}: {self.place} ({self.city})"
         return f"Day {self.trip_day}: Date {self.trip_date}"

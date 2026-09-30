@@ -212,3 +212,24 @@ def create_company_user_view(request):
         }, status=status.HTTP_201_CREATED)
         
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    
+    if not old_password or not new_password:
+        return Response({"error": "Please provide both old_password and new_password."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if not user.check_password(old_password):
+        return Response({"error": "Incorrect current password."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if len(new_password) < 6:
+        return Response({"error": "New password must be at least 6 characters long."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user.set_password(new_password)
+    user.save()
+    return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)

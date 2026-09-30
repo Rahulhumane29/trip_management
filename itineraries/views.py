@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import datetime, timedelta
 from django.core.cache import cache
@@ -6,7 +7,7 @@ from django.template.loader import render_to_string
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from xhtml2pdf import pisa
 
@@ -312,11 +313,26 @@ def itinerary_step2_view(request):
         if not day_meals and meal_plan:
             day_meals.append(meal_plan)
 
+        # Collect all place IDs for this day
+        all_day_place_ids = []
+        for itm in validated_items:
+            for pid in itm.get('places', []):
+                if pid not in all_day_place_ids:
+                    all_day_place_ids.append(pid)
+            if itm.get('place') and itm['place'] not in all_day_place_ids:
+                all_day_place_ids.append(itm['place'])
+        for pid in day.get('places', []):
+            if str(pid) not in all_day_place_ids:
+                all_day_place_ids.append(str(pid))
+        if day.get('place') and str(day['place']) not in all_day_place_ids:
+            all_day_place_ids.append(str(day['place']))
+
         validated_days.append({
             'trip_day': day_num,
             'trip_date': str(day_date),
             'notes': notes,
             'items': validated_items,
+            'places': all_day_place_ids,
             # Legacy compatibility fields
             'city': legacy_city_name,
             'place': first_place_id,
@@ -469,6 +485,19 @@ def itinerary_submit_view(request):
                 description=day.get('description', '')
             )
 
+            # Set multiple places on ItineraryDay
+            day_place_ids = list(day.get('places', []))
+            for item in day.get('items', []):
+                for pid in item.get('places', []):
+                    if str(pid) not in day_place_ids:
+                        day_place_ids.append(str(pid))
+                if item.get('place') and str(item['place']) not in day_place_ids:
+                    day_place_ids.append(str(item['place']))
+
+            if day_place_ids:
+                day_instance.places.set(day_place_ids)
+                itinerary.places.add(*day_place_ids)
+
             for item in day.get('items', []):
                 item_type = item['item_type']
                 
@@ -555,7 +584,7 @@ def itinerary_detail_view(request, pk):
         if not request.user or not request.user.is_authenticated:
             pass # allow for now as per @AllowAny or enforce depending on requirements
         itinerary.delete()
-        return Response({"message": "Itinerary deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Itinerary deleted successfully."}, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
         # Simple PUT update for top-level fields (can be expanded for nested updates)
@@ -568,41 +597,337 @@ def itinerary_detail_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def itinerary_pdf_view(request, pk):
     itinerary = get_object_or_404(Itinerary, pk=pk)
     
+    # Dynamic duration and dates calculation
+    if itinerary.trip_start_date and itinerary.trip_end_date:
+        days_count = (itinerary.trip_end_date - itinerary.trip_start_date).days + 1
+        nights_count = max(0, days_count - 1)
+        duration_str = f"{days_count:02d} DAYS / {nights_count:02d} NIGHTS"
+        start_date_str = itinerary.trip_start_date.strftime("%d %b %Y")
+        end_date_str = itinerary.trip_end_date.strftime("%d %b %Y")
+    else:
+        duration_str = "01 DAYS / 00 NIGHTS"
+        start_date_str = ""
+        end_date_str = ""
+
+    # Collect destination cities across days & items
+    cities_list = []
+    days_data = itinerary.days.all().order_by('trip_day')
+    for day in days_data:
+        if day.city and day.city.name not in cities_list:
+            cities_list.append(day.city.name)
+        for item in day.items.all():
+            if item.city and item.city.name not in cities_list:
+                cities_list.append(item.city.name)
+    
+    destinations_str = " → ".join(cities_list) if cities_list else "India"
+
     # Pre-process day-wise information
-    for day in itinerary.days.all():
-        # Format date as: 22 May (Fri)
+    for day in days_data:
         if day.trip_date:
             day.trip_date_formatted = day.trip_date.strftime("%d %b (%a)")
         else:
             day.trip_date_formatted = ""
             
-        # Pre-process items for this day
         day.ordered_items = day.items.all().order_by('sequence', 'start_time')
-        for item in day.ordered_items:
-            if item.place and item.place.photo and hasattr(item.place.photo, 'path'):
+        
+        # Resolve all places for the day
+        all_day_places = list(day.places.all())
+        for it in day.ordered_items:
+            for p in it.places.all():
+                if p not in all_day_places:
+                    all_day_places.append(p)
+            if it.place and it.place not in all_day_places:
+                all_day_places.append(it.place)
+        if day.place and day.place not in all_day_places:
+            all_day_places.append(day.place)
+
+        day.all_places = all_day_places
+        day.resolved_place_names = ", ".join(p.place_name for p in all_day_places) if all_day_places else ""
+        day.resolved_place = all_day_places[0] if all_day_places else day.place
+
+        # Photo path resolution: check all day places
+        photo_path = None
+        for p in all_day_places:
+            if p.photo and hasattr(p.photo, 'path'):
                 import os
-                if os.path.exists(item.place.photo.path):
-                    item.absolute_photo_path = item.place.photo.path
-                else:
-                    item.absolute_photo_path = None
+                if os.path.exists(p.photo.path):
+                    photo_path = p.photo.path.replace('\\', '/')
+                    break
+        if not photo_path:
+            for item in day.ordered_items:
+                if item.place and item.place.photo and hasattr(item.place.photo, 'path'):
+                    import os
+                    if os.path.exists(item.place.photo.path):
+                        photo_path = item.place.photo.path.replace('\\', '/')
+                        break
+        if not photo_path and day.place and day.place.photo and hasattr(day.place.photo, 'path'):
+            import os
+            if os.path.exists(day.place.photo.path):
+                photo_path = day.place.photo.path.replace('\\', '/')
+        day.absolute_photo_path = photo_path
+
+        # Build individual place details list for all places in this day
+        places_details_list = []
+        for p in all_day_places:
+            p_desc = (p.description or "").strip()
+            p_photo = None
+            if p.photo and hasattr(p.photo, 'path'):
+                import os
+                if os.path.exists(p.photo.path):
+                    p_photo = p.photo.path.replace('\\', '/')
+            places_details_list.append({
+                'name': p.place_name,
+                'description': p_desc,
+                'photo_path': p_photo,
+            })
+        day.places_details_list = places_details_list
+
+        # User's custom day description (if explicitly entered)
+        custom_day_desc = (day.description or "").strip()
+        day.custom_description = custom_day_desc
+
+        if custom_day_desc:
+            day.resolved_description = custom_day_desc
+        elif len(places_details_list) == 1:
+            day.resolved_description = places_details_list[0]['description']
+        elif len(places_details_list) > 1:
+            day.resolved_description = ""
+        else:
+            day.resolved_description = ""
+
+        for item in day.ordered_items:
+            item_desc = (item.description or "").strip()
+            item_places = list(item.places.all())
+            if not item_places and item.place:
+                item_places = [item.place]
+            item.item_places = item_places
+            item.places_display = ", ".join(p.place_name for p in item_places)
+            if not item_desc:
+                for ip in item_places:
+                    if ip.description and ip.description.strip() != day.resolved_description:
+                        item_desc = ip.description.strip()
+                        break
+            item.resolved_description = item_desc
+
+        # Dynamic stay information
+        stay_text = ""
+        for it in day.ordered_items:
+            if it.item_type == 'Hotel':
+                if it.place and it.place.place_name:
+                    stay_text = it.place.place_name
+                elif it.description:
+                    stay_text = it.description
+                break
+
+        if not stay_text and day.city:
+            matching_gp = itinerary.group_prices.filter(hotel__city=day.city).first()
+            if matching_gp and matching_gp.hotel:
+                stay_text = matching_gp.hotel.name
+
+        if not stay_text:
+            any_gp = itinerary.group_prices.filter(hotel__isnull=False).first()
+            if any_gp and any_gp.hotel:
+                stay_text = any_gp.hotel.name
+
+        if stay_text:
+            day.stay_display = f"Stay Night at {stay_text}"
+        elif day.city:
+            day.stay_display = f"Overnight Stay in {day.city.name}"
+        else:
+            day.stay_display = "Overnight Stay"
+
+        # Dynamic meal plan code
+        meal_str = (day.meal_plan or "").strip()
+        if meal_str:
+            meals_lower = [m.strip().lower() for m in meal_str.split(',') if m.strip()]
+            b = "B" if any("break" in m for m in meals_lower) else "-"
+            l = "L" if any("lunch" in m for m in meals_lower) else "-"
+            d = "D" if any("dinner" in m for m in meals_lower) else "-"
+            if b != "-" or l != "-" or d != "-":
+                day.meal_display = f"{b}/{l}/{d}"
             else:
-                item.absolute_photo_path = None
+                day.meal_display = meal_str
+        elif day.city and day.city.code:
+            day.meal_display = day.city.code
+        else:
+            day.meal_display = ""
+
+    # User / Signatory name resolution
+    user = None
+    if request.user and request.user.is_authenticated:
+        user = request.user
+    else:
+        # Check token parameter (e.g. from window.open) or HTTP header
+        token_str = request.GET.get('token')
+        if not token_str:
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            if auth_header.startswith('Bearer '):
+                token_str = auth_header.split(' ')[1]
+        if token_str:
+            try:
+                from rest_framework_simplejwt.tokens import AccessToken
+                from django.contrib.auth.models import User
+                validated_token = AccessToken(token_str)
+                user_id = validated_token.get('user_id')
+                if user_id:
+                    user = User.objects.filter(id=user_id).first()
+            except Exception:
+                pass
+
+    user_name_param = request.GET.get('user_name', '').strip()
+    if user_name_param:
+        author_name = user_name_param
+    elif user:
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        author_name = full_name or user.username
+    else:
+        from django.contrib.auth.models import User
+        primary_user = User.objects.filter(is_active=True).exclude(username='admin').first() or User.objects.first()
+        if primary_user:
+            author_name = f"{primary_user.first_name} {primary_user.last_name}".strip() or primary_user.username
+        else:
+            author_name = "Authorized Manager"
+
+    # Fetch Account info (company details)
+    from accounts.models import Account
+    account = None
+    if user and hasattr(user, 'profile') and user.profile.account:
+        account = user.profile.account
+    if not account:
+        account = Account.objects.first()
+
+    company_logo_path = None
+    company_name = ""
+    company_phone = ""
+    company_fax = ""
+    company_email = ""
+    company_address = ""
+
+    if account:
+        company_name = account.name or ""
+        company_phone = account.telephone or ""
+        company_fax = account.fax or ""
+        company_email = account.email or ""
+        company_address = account.address or ""
+        if account.logo and hasattr(account.logo, 'path'):
+            import os
+            if os.path.exists(account.logo.path):
+                company_logo_path = account.logo.path.replace('\\', '/')
+
+    # Build pivoted table data for pricing table in row format
+    pax_sizes = sorted(list(set(gp.group_size for gp in itinerary.group_prices.all() if gp.group_size)))
+    pricing_rows = []
+
+    if itinerary.group_prices.exists():
+        grouped_by_hotel = {}
+        for gp in itinerary.group_prices.all().order_by('group_size'):
+            hotel_key = gp.hotel_id if gp.hotel_id else 'no_hotel'
+            if hotel_key not in grouped_by_hotel:
+                hotel_obj = gp.hotel
+                city_name = ""
+                hotel_name = ""
+                if hotel_obj:
+                    hotel_name = hotel_obj.name
+                    city_name = hotel_obj.city.name if hotel_obj.city else ""
+                if not city_name:
+                    city_name = destinations_str or "India"
+                if not hotel_name:
+                    hotel_name = "STANDARD HOTEL"
+                grouped_by_hotel[hotel_key] = {
+                    'city': city_name.upper(),
+                    'hotel_name': hotel_name.upper(),
+                    'prices_map': {}
+                }
+            grouped_by_hotel[hotel_key]['prices_map'][gp.group_size] = f"{gp.total_price_per_person:.2f}"
+
+        for h_key, data in grouped_by_hotel.items():
+            row_prices = []
+            for p in pax_sizes:
+                val = data['prices_map'].get(p, "-")
+                row_prices.append(val)
+            pricing_rows.append({
+                'city': data['city'],
+                'hotel_name': data['hotel_name'],
+                'prices': row_prices
+            })
+    else:
+        pax_sizes = ["-"]
+        pricing_rows = [{
+            'city': destinations_str.upper() if destinations_str else "INDIA",
+            'hotel_name': "STANDARD ACCOMMODATION",
+            'prices': ["Contact for Pricing"]
+        }]
+
+    def _parse_condition_obj(obj):
+        raw_text = (obj.text or "").strip()
+        parts = raw_text.split(" | ", 1)
+        title = parts[0].strip() if parts else raw_text
+        desc = parts[1].strip() if len(parts) > 1 else ""
+        return {
+            "id": str(obj.id),
+            "title": title,
+            "description": desc,
+            "text": raw_text,
+        }
+
+    inclusions_list = [_parse_condition_obj(i) for i in itinerary.inclusions.all()]
+    exclusions_list = [_parse_condition_obj(e) for e in itinerary.exclusions.all()]
+    policies_list = [_parse_condition_obj(p) for p in itinerary.policies.all()]
+    important_notes_list = [_parse_condition_obj(n) for n in itinerary.important_notes.all()]
 
     context = {
         'itinerary': itinerary,
+        'duration_str': duration_str,
+        'start_date_str': start_date_str,
+        'end_date_str': end_date_str,
+        'destinations_str': destinations_str,
+        'days_data': days_data,
+        'group_prices': itinerary.group_prices.all(),
+        'pax_sizes': pax_sizes,
+        'pricing_rows': pricing_rows,
+        'inclusions': inclusions_list,
+        'exclusions': exclusions_list,
+        'policies': policies_list,
+        'important_notes': important_notes_list,
         'current_date': datetime.now().strftime("%d/%m/%Y"),
-        'from_user': request.user.username if request.user and request.user.is_authenticated else "rahul"
+        'from_user': author_name,
+        'company_name': company_name,
+        'company_logo': company_logo_path,
+        'company_phone': company_phone,
+        'company_fax': company_fax,
+        'company_email': company_email,
+        'company_address': company_address,
     }
     
     html_string = render_to_string('itineraries/itinerary_pdf.html', context)
     
+    def link_callback(uri, rel):
+        import os
+        from django.conf import settings
+        if os.path.isfile(uri):
+            return uri
+        if uri.startswith(settings.MEDIA_URL):
+            path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, "", 1))
+        elif uri.startswith(settings.STATIC_URL):
+            path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, "", 1))
+        else:
+            path = os.path.join(settings.BASE_DIR, uri)
+        if os.path.isfile(path):
+            return path
+        return uri
+
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="itinerary_{itinerary.id}.pdf"'
     
-    pisa_status = pisa.CreatePDF(html_string, dest=response)
+    pisa_status = pisa.CreatePDF(
+        html_string,
+        dest=response,
+        link_callback=link_callback,
+    )
     if pisa_status.err:
         return Response({"error": "Failed to generate PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         

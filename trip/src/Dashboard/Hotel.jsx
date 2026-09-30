@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AddHotel from '../pages/add_hotel';
+import Toast from '../components/Toast';
 
 export default function Hotel() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,6 +12,18 @@ export default function Hotel() {
   const [hotels, setHotels] = useState([]);
   const [countries, setCountries] = useState(['Country']);
   const [cities, setCities] = useState(['City']);
+
+  // Toast & Delete Confirmation state
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [hotelToDelete, setHotelToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const showToastMessage = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3500);
+  };
 
   const loadData = () => {
     fetch('/api/hotels/')
@@ -59,7 +72,14 @@ export default function Hotel() {
   }, []);
 
   // Handlers
-  const handleDelete = (id) => {
+  const confirmDelete = (hotel) => {
+    setHotelToDelete(hotel);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!hotelToDelete) return;
+    const { id, hotel_name } = hotelToDelete;
     const token = localStorage.getItem('access_token');
     fetch(`/api/hotels/${id}/`, {
       method: 'DELETE',
@@ -69,10 +89,22 @@ export default function Hotel() {
     })
     .then(res => {
       if (res.ok) {
-        setHotels(hotels.filter(h => h.id !== id));
+        setHotels(prev => prev.filter(h => h.id !== id));
+        setShowDeleteModal(false);
+        setHotelToDelete(null);
+        showToastMessage('Hotel deleted successfully!', 'success');
+      } else {
+        setShowDeleteModal(false);
+        setHotelToDelete(null);
+        showToastMessage('Failed to delete hotel.', 'error');
       }
     })
-    .catch(err => console.error("Error deleting hotel:", err));
+    .catch(err => {
+      console.error("Error deleting hotel:", err);
+      setShowDeleteModal(false);
+      setHotelToDelete(null);
+      showToastMessage('Error deleting hotel. Please try again.', 'error');
+    });
   };
 
   const handleSaveHotel = (newHotel) => {
@@ -142,12 +174,12 @@ export default function Hotel() {
     <div className="space-y-6 select-none max-w-6xl mx-auto font-sans">
       
       {/* Title Header Row */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight leading-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-tight">
             Hotels
           </h2>
-          <p className="text-[13px] text-slate-500 mt-1 font-normal">
+          <p className="text-[12px] sm:text-[13px] text-slate-500 mt-1 font-normal">
             Manage hotels and accommodation partners across various regions.
           </p>
         </div>
@@ -158,7 +190,7 @@ export default function Hotel() {
             setEditingHotel(null);
             setShowAddModal(true);
           }}
-          className="flex items-center gap-2 px-4.5 py-2.5 bg-[#0070f3] hover:bg-[#0060d0] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
+          className="flex items-center gap-2 px-4.5 py-2.5 bg-[#0070f3] hover:bg-[#0060d0] active:scale-[0.98] rounded-xl text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 self-start sm:self-auto"
         >
           <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -393,7 +425,7 @@ export default function Hotel() {
                       <td className="py-4.5 px-6 align-middle text-right text-slate-400">
                         <div className="flex items-center justify-end gap-3.5 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleDelete(hotel.id)}
+                            onClick={() => confirmDelete(hotel)}
                             title="Delete"
                             className="hover:text-red-500 cursor-pointer p-1 transition-colors"
                           >
@@ -453,9 +485,62 @@ export default function Hotel() {
           setShowAddModal(false);
           setEditingHotel(null);
         }} 
-        onSave={handleSaveHotel} 
+        onSave={(data) => {
+          handleSaveHotel(data);
+          showToastMessage(editingHotel ? 'Hotel updated successfully!' : 'Hotel added successfully!', 'success');
+        }} 
         initialData={editingHotel}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && hotelToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Confirm Delete
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Delete Hotel
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-6 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+              Are you sure you want to delete <span className="font-semibold text-slate-800">"{hotelToDelete.hotel_name || 'this hotel'}"</span>? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setHotelToDelete(null);
+                }}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition-colors cursor-pointer shadow-md shadow-red-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      <Toast show={toast.show} message={toast.message} type={toast.type} />
 
     </div>
   );

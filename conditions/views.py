@@ -46,7 +46,7 @@ def inclusion_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             inclusion.delete()
-            return Response({"message": "Inclusion deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Inclusion deleted successfully."}, status=status.HTTP_200_OK)
 
 
 # --- EXCLUSIONS VIEWS ---
@@ -89,7 +89,7 @@ def exclusion_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             exclusion.delete()
-            return Response({"message": "Exclusion deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Exclusion deleted successfully."}, status=status.HTTP_200_OK)
 
 
 # --- POLICIES VIEWS ---
@@ -132,7 +132,7 @@ def policy_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             policy.delete()
-            return Response({"message": "Policy deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Policy deleted successfully."}, status=status.HTTP_200_OK)
 
 
 # --- IMPORTANT NOTES VIEWS ---
@@ -175,4 +175,4 @@ def important_note_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             note.delete()
-            return Response({"message": "Important note deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Important note deleted successfully."}, status=status.HTTP_200_OK)

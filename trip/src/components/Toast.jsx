@@ -4,12 +4,12 @@ export default function Toast({ show, message, type = 'success' }) {
   if (!show) return null;
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold text-white transition-all transform translate-y-0 duration-300 ${
+    <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold text-white transition-all duration-300 transform translate-y-0 ${
       type === 'success'
-        ? 'bg-emerald-600 border-emerald-500 shadow-emerald-600/10'
+        ? 'bg-emerald-600 border-emerald-500 shadow-emerald-600/20'
         : type === 'error'
-        ? 'bg-rose-600 border-rose-500 shadow-rose-600/10'
-        : 'bg-blue-600 border-blue-500 shadow-blue-600/10'
+        ? 'bg-rose-600 border-rose-500 shadow-rose-600/20'
+        : 'bg-blue-600 border-blue-500 shadow-blue-600/20'
     }`}>
       {type === 'success' ? (
         <svg className="w-4 h-4 shrink-0 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

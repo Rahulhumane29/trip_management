@@ -1,6 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
+export default function Sidebar({ activeTab = 'Dashboard', setActiveTab, mobileOpen = false, setMobileOpen }) {
+  const [logoUrl, setLogoUrl] = useState(null);
+  
+  const fetchLogo = () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    
+    fetch('/api/profile/', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : null)
+      .then(userData => {
+        if (userData && userData.account_id) {
+          return fetch(`/api/accounts/${userData.account_id}/`, { headers: { 'Authorization': `Bearer ${token}` } });
+        }
+      })
+      .then(res => (res && res.ok) ? res.json() : null)
+      .then(accountData => {
+        if (accountData && accountData.logo) {
+          setLogoUrl(accountData.logo.startsWith('http') ? accountData.logo : `http://localhost:8000${accountData.logo}`);
+        } else {
+          setLogoUrl(null);
+        }
+      })
+      .catch(err => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchLogo();
+    window.addEventListener('logoUpdated', fetchLogo);
+    return () => window.removeEventListener('logoUpdated', fetchLogo);
+  }, []);
+
   const navItems = [
     {
       name: 'Dashboard',
@@ -75,90 +105,108 @@ export default function Sidebar({ activeTab = 'Dashboard', setActiveTab }) {
     }
   ];
 
+  const handleNavClick = (itemName) => {
+    if (setActiveTab) setActiveTab(itemName);
+    if (setMobileOpen) setMobileOpen(false);
+  };
+
   return (
-    <aside className="w-64 bg-sidebar-bg border-r border-sidebar-border flex flex-col justify-between h-screen fixed top-0 left-0 z-20 font-sans select-none text-sidebar-text">
-      <div className="p-6">
-        {/* Brand Logo Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 bg-sidebar-active rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            {/* Map folded logo */}
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div 
+          onClick={() => setMobileOpen && setMobileOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 md:hidden transition-opacity"
+        />
+      )}
+
+      <aside className={`w-64 bg-sidebar-bg border-r border-sidebar-border flex flex-col justify-between h-screen fixed top-0 left-0 z-40 font-sans select-none text-sidebar-text transition-transform duration-300 ease-in-out md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 overflow-y-auto">
+          {/* Brand Logo Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-sidebar-active rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Company Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-lg font-bold text-sidebar-text tracking-tight">TripPlanner Pro</span>
+            </div>
+            
+            {/* Mobile Close Button */}
+            <button 
+              onClick={() => setMobileOpen && setMobileOpen(false)}
+              className="md:hidden p-1.5 rounded-lg text-sidebar-secondary hover:text-sidebar-text hover:bg-sidebar-hover transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Create New Trip Button */}
+          <button
+            onClick={() => handleNavClick('TripManage')}
+            className="w-full bg-sidebar-active hover:opacity-90 active:scale-[0.98] text-white text-[13px] font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 transition-all cursor-pointer mb-8"
+          >
+            <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-          </div>
-          <span className="text-lg font-bold text-sidebar-text tracking-tight">TripPlanner Pro</span>
+            <span>New Trip</span>
+          </button>
+
+          {/* Sidebar Nav Links */}
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const isActive = activeTab === item.name;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavClick(item.name)}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-sidebar-active text-sidebar-text'
+                      : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
+                  }`}
+                >
+                  <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.name}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Create New Trip Button */}
-        <button
-          onClick={() => setActiveTab && setActiveTab('NewTrip')}
-          className="w-full bg-sidebar-active hover:opacity-90 active:scale-[0.98] text-white text-[13px] font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 transition-all cursor-pointer mb-8"
-        >
-          <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Trip</span>
-        </button>
-
-        {/* Sidebar Nav Links */}
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = activeTab === item.name;
-            return (
-              <button
-                key={item.name}
-                onClick={() => setActiveTab && setActiveTab(item.name)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-sidebar-active text-sidebar-text'
-                    : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
-                }`}
-              >
-                <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Footer Nav & Profile dropdown block */}
-      <div className="p-6 border-t border-sidebar-border">
-        <nav className="space-y-1 mb-6">
-          {bottomItems.map((item) => {
-            const isActive = activeTab === item.name;
-            return (
-              <button
-                key={item.name}
-                onClick={() => setActiveTab && setActiveTab(item.name)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-sidebar-active text-sidebar-text'
-                    : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
-                }`}
-              >
-                <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User profile dropdown block */}
-        <div className="flex items-center justify-between p-3.5 bg-sidebar-hover border border-sidebar-border rounded-xl hover:opacity-95 transition-all cursor-pointer group">
-          <div className="flex flex-col text-left">
-            <span className="text-[13px] font-bold text-sidebar-text tracking-tight leading-tight">Alex Rivera</span>
-            <span className="text-[10px] text-sidebar-secondary font-medium mt-0.5">Travel Coordinator</span>
-          </div>
-          <svg className="w-4 h-4 text-sidebar-secondary group-hover:text-sidebar-text transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+        {/* Footer Nav & Profile dropdown block */}
+        <div className="p-6 border-t border-sidebar-border">
+          <nav className="space-y-1">
+            {bottomItems.map((item) => {
+              const isActive = activeTab === item.name;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavClick(item.name)}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-sidebar-active text-sidebar-text'
+                      : 'text-sidebar-secondary hover:bg-sidebar-hover hover:text-sidebar-text'
+                  }`}
+                >
+                  <span className={`${isActive ? 'text-sidebar-text' : 'text-sidebar-secondary'}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.name}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

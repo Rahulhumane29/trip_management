@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 export default function AddCondition({ show, onClose, onSave, initialData, activeSubTab }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [badgeType, setBadgeType] = useState('STANDARD');
 
   // Pre-fill fields if editing
   useEffect(() => {
@@ -11,11 +10,9 @@ export default function AddCondition({ show, onClose, onSave, initialData, activ
       if (initialData) {
         setTitle(initialData.title || '');
         setDescription(initialData.description || '');
-        setBadgeType(initialData.badge || 'STANDARD');
       } else {
         setTitle('');
         setDescription('');
-        setBadgeType('STANDARD');
       }
     }
   }, [show, initialData]);
@@ -27,7 +24,6 @@ export default function AddCondition({ show, onClose, onSave, initialData, activ
     onSave({
       title,
       description,
-      badge: badgeType
     });
   };
 
@@ -35,16 +31,16 @@ export default function AddCondition({ show, onClose, onSave, initialData, activ
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/20 backdrop-blur-sm flex items-center justify-center p-4 font-sans select-none">
-      
+
       {/* Modal Box */}
       <div className="w-full max-w-lg bg-slate-50 border border-slate-200/60 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative">
-        
+
         {/* Header */}
         <div className="flex justify-between items-center pb-2">
           <h2 className="text-xl font-bold text-slate-800 tracking-tight">
             {initialData ? `Edit ${activeSubTab.substring(0, activeSubTab.length - 1)}` : `Add New ${activeSubTab.substring(0, activeSubTab.length - 1)}`}
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"
           >
@@ -83,28 +79,6 @@ export default function AddCondition({ show, onClose, onSave, initialData, activ
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Badge Type
-            </label>
-            <div className="relative">
-              <select
-                value={badgeType}
-                onChange={(e) => setBadgeType(e.target.value)}
-                className="appearance-none block w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-750 font-semibold focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
-              >
-                <option value="STANDARD">Standard</option>
-                <option value="PREMIUM">Premium</option>
-                <option value="LEGAL">Legal</option>
-                <option value="OPTIONAL">Optional</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
 
           {/* Action Row */}
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/50">

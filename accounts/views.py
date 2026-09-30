@@ -57,7 +57,7 @@ def account_detail_view(request, pk):
             
         elif request.method == 'DELETE':
             account.delete()
-            return Response({"message": "Account deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

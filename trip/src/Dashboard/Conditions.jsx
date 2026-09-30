@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import AddCondition from '../pages/add_condition';
+import Toast from '../components/Toast';
 
 export default function Conditions() {
   const [activeSubTab, setActiveSubTab] = useState('Inclusions');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+
+  // Toast & Delete Confirmation state
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const showToastMessage = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3500);
+  };
 
   // States for backend data
   const [inclusions, setInclusions] = useState([]);
@@ -25,7 +38,6 @@ export default function Conditions() {
               id: item.id,
               title: parts[0] || item.text,
               description: parts[1] || '',
-              badge: parts[2] || 'STANDARD'
             };
           });
           setInclusions(formatted);
@@ -43,7 +55,6 @@ export default function Conditions() {
               id: item.id,
               title: parts[0] || item.text,
               description: parts[1] || '',
-              badge: parts[2] || 'STANDARD'
             };
           });
           setExclusions(formatted);
@@ -61,7 +72,6 @@ export default function Conditions() {
               id: item.id,
               title: parts[0] || item.text,
               description: parts[1] || '',
-              badge: parts[2] || 'LEGAL'
             };
           });
           setPolicies(formatted);
@@ -79,7 +89,6 @@ export default function Conditions() {
               id: item.id,
               title: parts[0] || item.text,
               description: parts[1] || '',
-              badge: parts[2] || 'STANDARD'
             };
           });
           setImportantNotes(formatted);
@@ -93,7 +102,14 @@ export default function Conditions() {
   }, []);
 
   // Handlers
-  const handleDelete = (id, tabType) => {
+  const confirmDelete = (item, tabType) => {
+    setItemToDelete({ id: item.id, title: item.title, tabType });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!itemToDelete) return;
+    const { id, tabType, title } = itemToDelete;
     const token = localStorage.getItem('access_token');
     const endpointMap = {
       'Inclusions': 'inclusions',
@@ -112,17 +128,29 @@ export default function Conditions() {
     .then(res => {
       if (res.ok) {
         if (tabType === 'Inclusions') {
-          setInclusions(inclusions.filter(item => item.id !== id));
+          setInclusions(prev => prev.filter(item => item.id !== id));
         } else if (tabType === 'Exclusions') {
-          setExclusions(exclusions.filter(item => item.id !== id));
+          setExclusions(prev => prev.filter(item => item.id !== id));
         } else if (tabType === 'Policies') {
-          setPolicies(policies.filter(item => item.id !== id));
+          setPolicies(prev => prev.filter(item => item.id !== id));
         } else {
-          setImportantNotes(importantNotes.filter(item => item.id !== id));
+          setImportantNotes(prev => prev.filter(item => item.id !== id));
         }
+        setShowDeleteModal(false);
+        setItemToDelete(null);
+        showToastMessage(`${tabType.slice(0, -1)} deleted successfully!`, 'success');
+      } else {
+        setShowDeleteModal(false);
+        setItemToDelete(null);
+        showToastMessage('Failed to delete condition item.', 'error');
       }
     })
-    .catch(err => console.error("Error deleting item:", err));
+    .catch(err => {
+      console.error("Error deleting item:", err);
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      showToastMessage('Error deleting item. Please try again.', 'error');
+    });
   };
 
   const handleSaveItem = (newVal) => {
@@ -144,7 +172,7 @@ export default function Conditions() {
     const method = editingItem ? 'PUT' : 'POST';
 
     // Concatenate details into single text field
-    const serializedText = `${newVal.title} | ${newVal.description} | ${newVal.badge}`;
+    const serializedText = `${newVal.title} | ${newVal.description}`;
 
     fetch(url, {
       method: method,
@@ -161,11 +189,15 @@ export default function Conditions() {
         loadData();
         setShowAddModal(false);
         setEditingItem(null);
+        showToastMessage(editingItem ? 'Condition updated successfully!' : 'Condition added successfully!', 'success');
       } else {
-        alert("Failed to save condition item");
+        showToastMessage('Failed to save condition item.', 'error');
       }
     })
-    .catch(err => console.error("Error saving condition:", err));
+    .catch(err => {
+      console.error("Error saving condition:", err);
+      showToastMessage('Error saving condition item.', 'error');
+    });
   };
 
   const subTabs = [
@@ -354,9 +386,7 @@ export default function Conditions() {
                     <th className="py-3.5 px-6 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">
                       Description
                     </th>
-                    <th className="py-3.5 px-6 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center w-28">
-                      Badge
-                    </th>
+                   
                     <th className="py-3.5 px-6 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right w-28">
                       Action
                     </th>
@@ -391,26 +421,13 @@ export default function Conditions() {
                         {item.description}
                       </td>
 
-                      {/* Badge Type */}
-                      <td className="py-4.5 px-6 align-middle text-center">
-                        <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider ${
-                          item.badge === 'STANDARD'
-                            ? 'bg-slate-100 text-slate-800'
-                            : item.badge === 'PREMIUM'
-                            ? 'bg-teal-50 text-teal-600'
-                            : item.badge === 'LEGAL'
-                            ? 'bg-amber-50 text-amber-600'
-                            : 'bg-blue-50 text-blue-600'
-                        }`}>
-                          {item.badge}
-                        </span>
-                      </td>
+                     
 
                       {/* Actions */}
                       <td className="py-4.5 px-6 align-middle text-right text-slate-400">
                         <div className="flex items-center justify-end gap-3.5 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleDelete(item.id, activeSubTab)}
+                            onClick={() => confirmDelete(item, activeSubTab)}
                             title="Delete"
                             className="hover:text-red-500 cursor-pointer p-1 transition-colors"
                           >
@@ -473,6 +490,56 @@ export default function Conditions() {
         initialData={editingItem}
         activeSubTab={activeSubTab}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">
+                  Confirm Delete
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Delete {itemToDelete.tabType.slice(0, -1)}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-6 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+              Are you sure you want to delete <span className="font-semibold text-slate-800">"{itemToDelete.title}"</span>? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setItemToDelete(null);
+                }}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition-colors cursor-pointer shadow-md shadow-red-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      <Toast show={toast.show} message={toast.message} type={toast.type} />
 
     </div>
   );
